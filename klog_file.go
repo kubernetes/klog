@@ -127,12 +127,29 @@ func create(tag string, t time.Time, startup bool) (f *os.File, filename string,
 	return nil, "", fmt.Errorf("log: cannot create log: %v", lastErr)
 }
 
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
 // The startup argument indicates whether this is the initial startup of klog.
 // If startup is true, existing files are opened for appending instead of truncated.
 func openOrCreate(name string, startup bool) (*os.File, error) {
 	if startup {
-		f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		return f, err
+		existed, _ := PathExists(name)
+		if existed {
+			f, err := os.OpenFile(name, os.O_RDWR | os.O_APPEND, 0666)
+			return f, err
+		} else {
+			f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			return f, err
+		}
 	}
 	f, err := os.Create(name)
 	return f, err
