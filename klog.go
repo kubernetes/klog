@@ -1096,6 +1096,15 @@ func (l *loggingT) setV(pc uintptr) Level {
 	return 0
 }
 
+// Writer implements io.Writer interface as a pass-through for klog.
+type Writer func(args ...interface{})
+
+// Write passes string(p) into Writer's logFunc and always returns len(p)
+func (w Writer) Write(p []byte) (n int, err error) {
+	w(string(p))
+	return len(p), nil
+}
+
 // Verbose is a boolean type that implements Infof (like Printf) etc.
 // See the documentation of V for more information.
 type Verbose bool

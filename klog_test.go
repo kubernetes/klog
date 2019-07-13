@@ -583,3 +583,17 @@ func TestInitFlags(t *testing.T) {
 		t.Fatal("Expected log_file_max_size to be 2048")
 	}
 }
+
+// Test that Writer works as advertised.
+func TestWriterInfo(t *testing.T) {
+	setFlags()
+	defer logging.swap(logging.newBuffers())
+	w := Writer(Info)
+	fmt.Fprintf(w, "test")
+	if !contains(infoLog, "I", t) {
+		t.Errorf("Info has wrong character: %q", contents(infoLog))
+	}
+	if !contains(infoLog, "test", t) {
+		t.Error("Info failed")
+	}
+}
