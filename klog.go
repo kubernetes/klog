@@ -803,6 +803,16 @@ func SetOutputBySeverity(name string, w io.Writer) {
 	logging.file[sev] = rb
 }
 
+// LogToOutput configures klog to output to the specified writer. It is equivalent to SetOutput()
+// and flag.Set("logtostderr", "false")
+func LogToOutput(w io.Writer) {
+	SetOutput(w)
+	logging.mu.Lock()
+	defer logging.mu.Unlock()
+
+	logging.toStderr = false
+}
+
 // output writes the data to the log files and releases the buffer.
 func (l *loggingT) output(s severity, log logr.InfoLogger, buf *buffer, file string, line int, alsoToStderr bool) {
 	l.mu.Lock()
