@@ -827,7 +827,7 @@ func (l *loggingT) output(s severity, log logr.InfoLogger, buf *buffer, file str
 			os.Stderr.Write(data)
 		}
 
-		if logging.logFile != "" {
+		if l.logFile != "" {
 			// Since we are using a single log file, all of the items in l.file array
 			// will point to the same file, so just use one of them to write data.
 			if l.file[infoLog] == nil {
