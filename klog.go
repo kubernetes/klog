@@ -812,14 +812,17 @@ func (l *loggingT) output(s severity, log logr.InfoLogger, buf *buffer, file str
 		}
 	}
 	data := buf.Bytes()
-	if log != nil {
-		// TODO: set 'severity' and caller information as structured log info
-		// keysAndValues := []interface{}{"severity", severityName[s], "file", file, "line", line}
+	// In later version, we should check argument s is either errorLog or infoLog.
+	// However for now, as backward compatibility, all s other than errorLog goes to l.logr.Info().
+	// if l.logr != nil && (s == errorLog || s == infoLog) {
+	if l.logr != nil {
 		if s == errorLog {
-			l.logr.Error(nil, string(data))
+			l.logr.Error(nil, string(data), "severity", severityName[s], "file", file, "line", line)
 		} else {
-			log.Info(string(data))
+			l.logr.Info(string(data), "severity", severityName[s], "file", file, "line", line)
 		}
+	} else if log != nil && s == infoLog {
+		log.Info(string(data), "severity", severityName[s], "file", file, "line", line)
 	} else if l.toStderr {
 		os.Stderr.Write(data)
 	} else {

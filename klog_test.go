@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"github.com/go-logr/logr"
 	"io/ioutil"
 	stdLog "log"
 	"os"
@@ -638,4 +639,301 @@ func TestInitFlags(t *testing.T) {
 	if logging.logFileMaxSizeMB != 2048 {
 		t.Fatal("Expected log_file_max_size to be 2048")
 	}
+}
+
+func createTestValueOfLoggingT() *loggingT {
+	l := new(loggingT)
+	l.toStderr = true
+	l.alsoToStderr = false
+	l.stderrThreshold = errorLog
+	l.verbosity = Level(0)
+	l.skipHeaders = false
+	l.skipLogHeaders = false
+	l.addDirHeader = false
+	return l
+}
+
+// testInfoLogger implements logr.infoLogger.
+var _ logr.InfoLogger = testInfoLogger{}
+
+// testInfoLogger doesn't write log to any place.
+// testInfoLogger.Info() only stores values passed as argument
+// to another value of type testInfoLogger.
+type testInfoLogger struct {
+	verbosity     int
+	message       string
+	keysAndValues []interface{}
+	enabled       bool
+
+	store *testInfoLogger
+}
+
+func (il testInfoLogger) Info(msg string, kvs ...interface{}) {
+	il.store.message = msg
+	il.store.keysAndValues = append(il.keysAndValues, kvs...)
+}
+
+func (il testInfoLogger) Enabled() bool {
+	return il.enabled
+}
+
+// testLogger implements logr.Logger.
+var _ logr.Logger = testLogger{}
+
+// testLogger doesn't write log to any place.
+// testLogger.Info() & testLogger.Error() only store values passed as argument
+// to another value of type testLogger.
+type testLogger struct {
+	name          []string
+	verbosity     int // verbosity of logr.Logger should be 0.
+	err           error
+	message       string
+	keysAndValues []interface{}
+	enabled       bool
+
+	store *testLogger
+}
+
+func (l testLogger) Info(msg string, kvs ...interface{}) {
+	l.store.message = msg
+	l.store.keysAndValues = append(l.keysAndValues, kvs...)
+}
+
+func (l testLogger) Enabled() bool {
+	return l.enabled
+}
+
+func (l testLogger) Error(err error, msg string, kvs ...interface{}) {
+	l.store.err = err
+	l.store.message = msg
+	l.store.keysAndValues = append(l.keysAndValues, kvs...)
+}
+
+func (l testLogger) V(level int) logr.InfoLogger {
+	ril := testInfoLogger{}
+	ril.verbosity = level
+	ril.message = l.message
+	ril.keysAndValues = l.keysAndValues
+	ril.enabled = true
+	return ril
+}
+
+func (l testLogger) WithValues(kvs ...interface{}) logr.Logger {
+	rl := l
+	rl.keysAndValues = append(rl.keysAndValues, kvs...)
+	return rl
+}
+
+func (l testLogger) WithName(name string) logr.Logger {
+	rl := l
+	rl.name = append(rl.name, name)
+	return rl
+}
+
+func compareKeysAndValues(a, b []interface{}) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+/*
+output method of loggingT is called at
+ * println method of loggingT
+ * printDepth method of loggingT
+ * printf method of loggingT
+ * printWithFileLine method of loggingT
+ * print method of loggingT (This method calls printDepth. So indirectly call output.)
+
+And above methods are called at
+ * Write method of logBridge
+ * Info method of Verbose
+ * Infoln method of Verbose
+ * Infof method of Verbose
+ * Info function
+ * InfoDepth function
+ * Infoln function
+ * Infof function
+ * Warning function
+ * WarningDepth function
+ * Warningln function
+ * Warningf function
+ * Error function
+ * ErrorDepth function
+ * Errorln function
+ * Errorf function
+ * Fatal function
+ * FatalDepth function
+ * Fatalln function
+ * Fatalf function
+ * Exit function
+ * ExitDepth function
+ * Exitln function
+ * Exitf function
+and
+  * receiver of output method is global variable logging in all these methods
+  * argument log of output method is
+     1. Verbose.logr at Info, Infoln and Infof method of Verbose with argument s as infoLog, or
+     2. global variable logging at all other these methods with argument s as any severity.
+
+So currently, there should be 4 situations in which logr.InfoLogger/logr.Logger is handled:
+ * (Situation 1)  log argument is set with severity as infoLog & logr field of receiver l is set
+     => Info method of l.logr is called.
+ * (Situation 2)  log argument is set with severity as infoLog & logr field of receiver l is not set
+     => Info method of log argument (type logr.InfoLogger) is called.
+ * (Situation 3)  logr field of receiver l is set & l.logr is passed as log argument with severity as any value
+     => * [Situation 3-1] If severity is errorLog, Error method of l.logr is called
+        * [Situation 3-2] If severity is not infoLog, Info method of l.logr is called
+
+This test function checks whether above 4 situations hold by runing sub-tests.
+*/
+func TestOutput(t *testing.T) {
+	// Situation 1
+	t.Run("Situation 1", func(t *testing.T) {
+		kv1 := []interface{}{
+			"severity", severityName[infoLog],
+			"file", "keyValue1",
+			"line", 1,
+		}
+
+		msg1 := "situation1"
+
+		bf1 := &buffer{}
+		bf1.next = nil
+		bf1.Reset()
+		// Call fmt.Fprintln() to emulate output method is called by println method of loggingT.
+		fmt.Fprintln(bf1, msg1)
+
+		// Value of type *testLogger to which test is run
+		tl1 := new(testLogger)
+
+		// Value of type loggingT which call output method
+		l1 := createTestValueOfLoggingT()
+		l1.logr = testLogger{store: tl1}
+
+		// Want value of testLogger
+		wantLogger1 := testLogger{}
+		// Because we call fmt.Fprintln() above to emulate println method, add "\n"
+		wantLogger1.message = msg1 + "\n"
+		wantLogger1.keysAndValues = kv1
+
+		l1.output(infoLog, l1.logr, bf1, "keyValue1", 1, false)
+
+		if tl1.message != wantLogger1.message || !compareKeysAndValues(tl1.keysAndValues, wantLogger1.keysAndValues) {
+			t.Errorf("output method of loggingT doesn't call logr.Logger.Info correctly:\nwant:\n\tmessage:\t%v\n\tkeysAndValues:\t%v\ngot:\n\tmessage:\t%v\n\tkeysAndValues:\t%v\n", wantLogger1.message, wantLogger1.keysAndValues, tl1.message, tl1.keysAndValues)
+		}
+	})
+
+	// Situation 2
+	t.Run("Situation 2", func(t *testing.T) {
+		kv2 := []interface{}{
+			"severity", severityName[infoLog],
+			"file", "keyValue2",
+			"line", 2,
+		}
+
+		msg2 := "situation2"
+
+		bf2 := &buffer{}
+		bf2.next = nil
+		bf2.Reset()
+		// Call fmt.Fprintln() to emulate output method is called by println method of loggingT.
+		fmt.Fprintln(bf2, msg2)
+
+		// Value of type *testLogger to which test is run
+		tl2 := new(testLogger)
+
+		// Value of type loggingT which call output method & logr filed is not set (empty)
+		el2 := createTestValueOfLoggingT()
+
+		l2 := createTestValueOfLoggingT()
+		l2.logr = testLogger{store: tl2}
+
+		// Want value of testLogger
+		wantLogger2 := testLogger{}
+		// Because we call fmt.Fprintln() above to emulate println method, add "\n"
+		wantLogger2.message = msg2 + "\n"
+		wantLogger2.keysAndValues = kv2
+
+		el2.output(infoLog, l2.logr, bf2, "keyValue2", 2, false)
+
+		if tl2.message != wantLogger2.message || !compareKeysAndValues(tl2.keysAndValues, wantLogger2.keysAndValues) {
+			t.Errorf("output method of loggingT doesn't call logr.Logger.Info correctly:\nwant:\n\tmessage:\t%v\n\tkeysAndValues:\t%v\ngot:\n\tmessage:\t%v\n\tkeysAndValues:\t%v\n", wantLogger2.message, wantLogger2.keysAndValues, tl2.message, tl2.keysAndValues)
+		}
+	})
+
+	// Situation 3-1 & 3-2
+	// Currently, in output method,  logr.Logger.Error(err error, msg string, keysAndValues ...interface{})
+	// is called  with nil as err argument. So we don't check whether value passed as err is correctly set.
+	testCases := []struct {
+		subt     string
+		kv       []interface{}
+		msg      string
+		severity severity
+		file     string
+		line     int
+	}{
+		{
+			subt: "Situation 3-1",
+			kv: []interface{}{
+				"severity", severityName[errorLog],
+				"file", "keyValue31",
+				"line", 31,
+			},
+			msg:      "situation31",
+			severity: errorLog,
+			file:     "keyValue31",
+			line:     31,
+		},
+		{
+			subt: "Situation 3-2",
+			kv: []interface{}{
+				"severity", severityName[warningLog],
+				"file", "keyValue32",
+				"line", 32,
+			},
+			msg:      "situation32",
+			severity: warningLog,
+			file:     "keyValue32",
+			line:     32,
+		},
+	}
+
+	for _, tv := range testCases {
+		t.Run(tv.subt, func(t *testing.T) {
+
+			bf3 := &buffer{}
+			bf3.next = nil
+			bf3.Reset()
+			// Call fmt.Fprintln() to emulate output method is called by println method of loggingT.
+			fmt.Fprintln(bf3, tv.msg)
+
+			// Value of type *testLogger to which test is run
+			tl3 := new(testLogger)
+
+			// Value of type loggingT which call output method
+			l3 := createTestValueOfLoggingT()
+			l3.logr = testLogger{store: tl3}
+
+			// Want value of testLogger
+			wantLogger3 := testLogger{}
+			// Because we call fmt.Fprintln() above to emulate println method, add "\n"
+			wantLogger3.message = tv.msg + "\n"
+			wantLogger3.keysAndValues = tv.kv
+
+			l3.output(tv.severity, l3.logr, bf3, tv.file, tv.line, false)
+
+			if tl3.message != wantLogger3.message || !compareKeysAndValues(tl3.keysAndValues, wantLogger3.keysAndValues) {
+				t.Errorf("output method of loggingT doesn't call logr.Logger.Info correctly:\nwant:\n\tmessage:\t%v\n\tkeysAndValues:\t%v\ngot:\n\tmessage:\t%v\n\tkeysAndValues:\t%v\n", wantLogger3.message, wantLogger3.keysAndValues, tl3.message, tl3.keysAndValues)
+			}
+		})
+	}
+
 }
