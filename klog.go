@@ -238,6 +238,106 @@ func (l *Level) Set(value string) error {
 	return nil
 }
 
+// header to print time, severity level, pid
+// format symbols: L yyyy mm dd hh MM ss uuuuuu ppppppp
+// L level
+// yyyy year
+// mm month
+// dd day
+// hh hour
+// MM minute
+// ss second
+// uuuuuu microsecond
+// ppppppp pid
+type headerFormat struct {
+	format    string
+	levelOff  int
+	yearOff   int //only support four letters
+	monthOff  int
+	dayOff    int
+	hourOff   int
+	minuteOff int
+	secondOff int
+	msOff     int
+	pidOff    int
+	len       int
+	bufFmt    []byte
+	valid     bool
+}
+
+// max formatLen, not longer than 64 in buffer,
+const maxFormatLen int = 60
+
+func (hf *headerFormat) IsValid() bool {
+	return hf.valid
+}
+
+func (hf *headerFormat) Get() interface{} {
+	return *hf
+}
+
+func (hf *headerFormat) String() string {
+	return hf.format
+}
+
+func (hf *headerFormat) Set(value string) error {
+	// parse value to format
+	if len(value) >= maxFormatLen {
+		return fmt.Errorf("len of \"%s\" is %d, exceeded max len %d", value, len(value), maxFormatLen)
+	}
+	// parse for each tagoffset
+	hf.len = len([]byte(value))
+	hf.bufFmt = make([]byte, hf.len)
+	copy(hf.bufFmt, []byte(value))
+	hf.levelOff = strings.Index(value, "L")
+	hf.yearOff = strings.Index(value, "yyyy")
+	hf.monthOff = strings.Index(value, "mm")
+	hf.dayOff = strings.Index(value, "dd")
+	hf.hourOff = strings.Index(value, "hh")
+	hf.minuteOff = strings.Index(value, "MM")
+	hf.secondOff = strings.Index(value, "ss")
+	hf.msOff = strings.Index(value, "uuuuuu")
+	hf.pidOff = strings.Index(value, "ppppppp")
+	hf.valid = true
+	return nil
+}
+
+func (hf *headerFormat) formatHeader(s severity, buf *buffer) {
+	now := timeNow()
+	year, month, day := now.Date()
+	hour, minute, second := now.Clock()
+	copy(buf.tmp[:], hf.bufFmt)
+	if hf.levelOff != -1 {
+		buf.tmp[hf.levelOff] = severityChar[s]
+	}
+	if hf.yearOff != -1 {
+		buf.nDigits(4, hf.yearOff, year, '0')
+	}
+	if hf.monthOff != -1 {
+		buf.twoDigits(hf.monthOff, int(month))
+	}
+	if hf.dayOff != -1 {
+		buf.twoDigits(hf.dayOff, day)
+	}
+	if hf.hourOff != -1 {
+		buf.twoDigits(hf.hourOff, hour)
+	}
+	if hf.minuteOff != -1 {
+		buf.twoDigits(hf.minuteOff, minute)
+	}
+	if hf.secondOff != -1 {
+		buf.twoDigits(hf.secondOff, second)
+	}
+
+	if hf.msOff != -1 {
+		buf.nDigits(6, hf.msOff, now.Nanosecond()/1000, '0')
+	}
+	if hf.pidOff != -1 {
+		buf.nDigits(7, hf.pidOff, pid, ' ') // TODO: should be TID
+	}
+	buf.Write(buf.tmp[:hf.len])
+}
+
 // moduleSpec represents the setting of the -vmodule flag.
 type moduleSpec struct {
 	filter []modulePat
@@ -433,6 +533,8 @@ func InitFlags(flagset *flag.FlagSet) {
 	flagset.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
 	flagset.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	flagset.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
+	flagset.Var(&logging.logFormat, "logformat", "logformat, a format string, yyyy stands for year, ppppppp stands for pid, L stands for level, yyyy stands for year,"+
+		"mm stands for month, dd stands for day, hh stands for hour, MM stands for minute, ss stands for second, uuuuuu stands for microseconds. The format length should be no more than 60 bytes.")
 }
 
 // Flush flushes all pending log I/O.
@@ -502,6 +604,8 @@ type loggingT struct {
 
 	// If set, all output will be redirected unconditionally to the provided logr.Logger
 	logr logr.Logger
+
+	logFormat headerFormat
 }
 
 // buffer holds a byte Buffer for reuse. The zero value is ready for use.
@@ -614,26 +718,30 @@ func (l *loggingT) formatHeader(s severity, file string, line int) *buffer {
 		return buf
 	}
 
-	// Avoid Fprintf, for speed. The format is so simple that we can do it quickly by hand.
-	// It's worth about 3X. Fprintf is hard.
-	_, month, day := now.Date()
-	hour, minute, second := now.Clock()
-	// Lmmdd hh:mm:ss.uuuuuu threadid file:line]
-	buf.tmp[0] = severityChar[s]
-	buf.twoDigits(1, int(month))
-	buf.twoDigits(3, day)
-	buf.tmp[5] = ' '
-	buf.twoDigits(6, hour)
-	buf.tmp[8] = ':'
-	buf.twoDigits(9, minute)
-	buf.tmp[11] = ':'
-	buf.twoDigits(12, second)
-	buf.tmp[14] = '.'
-	buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
-	buf.tmp[21] = ' '
-	buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
-	buf.tmp[29] = ' '
-	buf.Write(buf.tmp[:30])
+	if l.logFormat.IsValid() {
+		l.logFormat.formatHeader(s, buf)
+	} else {
+		// Avoid Fprintf, for speed. The format is so simple that we can do it quickly by hand.
+		// It's worth about 3X. Fprintf is hard.
+		_, month, day := now.Date()
+		hour, minute, second := now.Clock()
+		// Lmmdd hh:mm:ss.uuuuuu threadid file:line]
+		buf.tmp[0] = severityChar[s]
+		buf.twoDigits(1, int(month))
+		buf.twoDigits(3, day)
+		buf.tmp[5] = ' '
+		buf.twoDigits(6, hour)
+		buf.tmp[8] = ':'
+		buf.twoDigits(9, minute)
+		buf.tmp[11] = ':'
+		buf.twoDigits(12, second)
+		buf.tmp[14] = '.'
+		buf.nDigits(6, 15, now.Nanosecond()/1000, '0')
+		buf.tmp[21] = ' '
+		buf.nDigits(7, 22, pid, ' ') // TODO: should be TID
+		buf.tmp[29] = ' '
+		buf.Write(buf.tmp[:30])
+	}
 	buf.WriteString(file)
 	buf.tmp[0] = ':'
 	n := buf.someDigits(1, line)
