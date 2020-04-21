@@ -567,6 +567,8 @@ func (l *loggingT) putBuffer(b *buffer) {
 
 var timeNow = time.Now // Stubbed out for testing.
 
+const DefaultPrefixLength = 53 // Length of all the things we add up in the header below
+
 /*
 header formats a log header as defined by the C++ implementation.
 It returns a buffer containing the formatted header and the user's file and line number.
@@ -815,6 +817,8 @@ func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
 	return rb.w.Write(bytes)
 }
 
+const LoggerCallDepth = 5
+
 // SetLogger will set the backing logr implementation for klog.
 // If set, all log lines will be suppressed from the regular Output, and
 // redirected to the logr implementation.
@@ -826,6 +830,8 @@ func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
 func SetLogger(logr logr.Logger) {
 	logging.logr = logr
 }
+
+const OutputCallDepth = 6
 
 // SetOutput sets the output destination for all severities
 func SetOutput(w io.Writer) {

@@ -6,3 +6,5 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	k8s.io/klog/v2 v2.0.0-20200324194303-db919253a3bc
 )
+
+replace k8s.io/klog/v2 => ./.. // Do not copy this line into your project, we use this for testing
