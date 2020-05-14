@@ -567,6 +567,9 @@ func (l *loggingT) putBuffer(b *buffer) {
 
 var timeNow = time.Now // Stubbed out for testing.
 
+// DefaultPrefixLength is the length of all the things we add up in the header below
+const DefaultPrefixLength = 53
+
 /*
 header formats a log header as defined by the C++ implementation.
 It returns a buffer containing the formatted header and the user's file and line number.
@@ -815,6 +818,11 @@ func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
 	return rb.w.Write(bytes)
 }
 
+// LoggerCallDepth is the depth of the stack where we would find the information about
+// the file name/line number of the code that called klogv2. This can be used from
+// within the methods of logr.Logger passed to SetLogger below.
+const LoggerCallDepth = 5
+
 // SetLogger will set the backing logr implementation for klog.
 // If set, all log lines will be suppressed from the regular Output, and
 // redirected to the logr implementation.
@@ -826,6 +834,11 @@ func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
 func SetLogger(logr logr.Logger) {
 	logging.logr = logr
 }
+
+// OutputCallDepth is the depth of the stack where we would find the information about
+// the file name/line number of the code that called klogv2. This can be used from
+// within the Write method of io.Writer passed to SetOutput below.
+const OutputCallDepth = 6
 
 // SetOutput sets the output destination for all severities
 func SetOutput(w io.Writer) {
