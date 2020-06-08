@@ -105,7 +105,8 @@ const (
 	warningLog
 	errorLog
 	fatalLog
-	numSeverity = 4
+	custom1Log
+	numSeverity = 5
 )
 
 const severityChar = "IWEF"
@@ -115,6 +116,7 @@ var severityName = []string{
 	warningLog: "WARNING",
 	errorLog:   "ERROR",
 	fatalLog:   "FATAL",
+	custom1Log: "CUSTOM1",
 }
 
 // get returns the value of the severity.
@@ -1322,6 +1324,24 @@ func (v Verbose) InfoS(msg string, keysAndValues ...interface{}) {
 	if v.enabled {
 		logging.infoS(v.logr, msg, keysAndValues)
 	}
+}
+
+// CustomInfoln logs to the desired severity log.
+// Arguments are handled in the manner of fmt.Println; a newline is always appended.
+func Custom(s severity, args ...interface{}) {
+	logging.print(s, logging.logr, args...)
+}
+
+// CustomInfoln logs to the desired severity log.
+// Arguments are handled in the manner of fmt.Println; a newline is always appended.
+func Customln(s severity, args ...interface{}) {
+	logging.println(s, logging.logr, args...)
+}
+
+// Infof logs to the INFO log.
+// Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
+func Customf(s severity, format string, args ...interface{}) {
+	logging.printf(s, logging.logr, format, args...)
 }
 
 // Info logs to the INFO log.
