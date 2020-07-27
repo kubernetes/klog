@@ -430,7 +430,7 @@ func InitFlags(flagset *flag.FlagSet) {
 			"If the value is 0, the maximum file size is unlimited.")
 	flagset.BoolVar(&logging.toStderr, "logtostderr", logging.toStderr, "log to standard error instead of files")
 	flagset.BoolVar(&logging.alsoToStderr, "alsologtostderr", logging.alsoToStderr, "log to standard error as well as files")
-	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
+	flagset.Var(&logging.verbosity, "verbosity", "number for the log level verbosity")
 	flagset.BoolVar(&logging.addDirHeader, "add_dir_header", logging.addDirHeader, "If true, adds the file directory to the header of the log messages")
 	flagset.BoolVar(&logging.skipHeaders, "skip_headers", logging.skipHeaders, "If true, avoid header prefixes in the log messages")
 	flagset.BoolVar(&logging.oneOutput, "one_output", logging.oneOutput, "If true, only write logs to their native severity level (vs also writing to each lower severity level")
