@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	stdLog "log"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1072,5 +1073,116 @@ func TestSetVState(t *testing.T) {
 
 	if want.verbosity != target.verbosity || !compareModuleSpec(want.vmodule, target.vmodule) || want.filterLength != target.filterLength {
 		t.Errorf("setVState method doesn't configure loggingT values' verbosity, vmodule or filterLength:\nwant:\n\tverbosity:\t%v\n\tvmodule:\t%v\n\tfilterLength:\t%v\ngot:\n\tverbosity:\t%v\n\tvmodule:\t%v\n\tfilterLength:\t%v", want.verbosity, want.vmodule, want.filterLength, target.verbosity, target.vmodule, target.filterLength)
+	}
+}
+
+func TestCleanLogFiles(t *testing.T) {
+	testData := map[string]struct {
+		logFile string
+		backups int
+		files   []string
+		expect  []string
+	}{
+		"number of log files less than the specified backups": {
+			logFile: "test.log",
+			backups: 5,
+			files:   []string{"test.log.20200817-134012.1", "test.log.20200817-134012.2", "test.log.20200817-134015.3"},
+			expect:  []string{"test.log.20200817-134012.1", "test.log.20200817-134012.2", "test.log.20200817-134015.3"},
+		},
+		"number of log files more than the specified backups": {
+			logFile: "test.log",
+			backups: 5,
+			files: []string{"test.log.20200817-134012.1", "test.log.20200817-134012.2", "test.log.20200817-134015.3",
+				"test.log.20200817-134015.4", "test.log.20200817-134018.5", "test.log.20200817-134018.6",
+			},
+			expect: []string{"test.log.20200817-134012.2", "test.log.20200817-134015.3",
+				"test.log.20200817-134015.4", "test.log.20200817-134018.5", "test.log.20200817-134018.6",
+			},
+		},
+		"number of log files more than the specified backups, but other file exists": {
+			logFile: "test.log",
+			backups: 5,
+			files: []string{"test.log.20200817-134012.1", "test.log.20200817-134012.2", "test.log.20200817-134015.3",
+				"test.log.20200817-134015.4", "test.log.20200817-134018.5", "test.log.20200817-134018.6",
+				"zz_other.xml",
+			},
+			expect: []string{"test.log.20200817-134012.2", "test.log.20200817-134015.3",
+				"test.log.20200817-134015.4", "test.log.20200817-134018.5", "test.log.20200817-134018.6",
+				"zz_other.xml",
+			},
+		},
+	}
+	for name, test := range testData {
+		t.Run(name, func(t *testing.T) {
+			testDir, err := ioutil.TempDir("", "test")
+			if err != nil {
+				t.Error("cannot create temp dir.")
+			}
+			defer os.RemoveAll(testDir)
+			for _, f := range test.files {
+				file, err := os.Create(filepath.Join(testDir, f))
+				if err != nil {
+					t.Fatal("cannot create log file.")
+				}
+				file.Close()
+			}
+			err = cleanLogFiles(filepath.Join(testDir, test.logFile), test.backups)
+			if err != nil {
+				t.Fatal("clean log file failed.")
+			}
+			remainingFiles, err := ioutil.ReadDir(testDir)
+			if err != nil {
+				t.Fatal("cannot read the remaining files.")
+			}
+			if len(test.expect) != len(remainingFiles) {
+				t.Errorf("expect %d remaining files, but got %d", len(test.expect), len(remainingFiles))
+			} else {
+				for i, fi := range remainingFiles {
+					if test.expect[i] != fi.Name() {
+						t.Error("remaining files is inconsistent with the expect.")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestLogFileRotate(t *testing.T) {
+	setFlags()
+	testDir, err := ioutil.TempDir("", "test")
+	if err != nil {
+		t.Fatal("cannot create temp dir.")
+	}
+	defer os.RemoveAll(testDir)
+	defer func(previous string) { logging.logFile = previous }(logging.logFile)
+	logging.logFile = filepath.Join(testDir, "test.log")
+	defer func(previous uint64) { logging.logFileMaxSizeMB = previous }(logging.logFileMaxSizeMB)
+	logging.logFileMaxSizeMB = 1
+	defer func(previous int) { logging.logFileMaxBackups = previous }(logging.logFileMaxBackups)
+	logging.logFileMaxBackups = 2
+	defer func(previous uint64) { logging.logFileIndex = previous }(logging.logFileIndex)
+	logging.logFileIndex = uint64(rand.Int())
+	f, err := os.Create(logging.logFile)
+	if err != nil {
+		t.Fatal("cannot create log file.")
+	}
+	if err = f.Truncate(int64(CalculateMaxSize())); err != nil {
+		t.Fatal("cannot fill up the log file")
+	}
+	f.Close()
+	now := time.Now()
+	_, fname, err := create(severityName[infoLog], now, false)
+	if err != nil {
+		t.Fatalf("rotate log file failed: %v", err)
+	}
+	if fname != logging.logFile {
+		t.Errorf("rotate log file error, expect log name %s, but got %s", logging.logFile, fname)
+	}
+	files, err := ioutil.ReadDir(testDir)
+	if err != nil {
+		t.Errorf("cannot read files from %s", testDir)
+	}
+	if len(files) != 2 || files[0].Name() != "test.log" || files[1].Name() != rotateLogName("test.log", logging.logFileIndex-1, now) {
+		t.Error("cannot rotate log file.")
 	}
 }
