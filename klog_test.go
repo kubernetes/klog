@@ -311,6 +311,51 @@ func TestWarningWithOneOutput(t *testing.T) {
 	}
 }
 
+// Test that WarningS correctly structures logs.
+func TestWarningS(t *testing.T) {
+	setFlags()
+	defer logging.swap(logging.newBuffers())
+	timeNow = func() time.Time {
+		return time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.Local)
+	}
+	pid = 1234
+	var testDataInfo = []struct {
+		msg        string
+		format     string
+		keysValues []interface{}
+	}{
+		{
+			msg:        "test",
+			format:     "W0102 15:04:05.067890    1234 klog_test.go:%d] \"test\" pod=\"kubedns\"\n",
+			keysValues: []interface{}{"pod", "kubedns"},
+		},
+		{
+			msg:        "test",
+			format:     "W0102 15:04:05.067890    1234 klog_test.go:%d] \"test\" replicaNum=20\n",
+			keysValues: []interface{}{"replicaNum", 20},
+		},
+		{
+			msg:        "test",
+			format:     "W0102 15:04:05.067890    1234 klog_test.go:%d] \"test\" err=\"test error\"\n",
+			keysValues: []interface{}{"err", errors.New("test error")},
+		},
+	}
+
+	for _, data := range testDataInfo {
+		logging.file[warningLog] = &flushBuffer{}
+		WarningS(data.msg, data.keysValues...)
+		var line int
+		n, err := fmt.Sscanf(contents(warningLog), data.format, &line)
+		if n != 1 || err != nil {
+			t.Errorf("log format error: %d elements, error %s:\n%s", n, err, contents(warningLog))
+		}
+		want := fmt.Sprintf(data.format, line)
+		if contents(warningLog) != want {
+			t.Fatalf("WarningS has wrong format: \n got:\t%s\nwant:\t%s", contents(warningLog), want)
+		}
+	}
+}
+
 // Test that a V log goes to Info.
 func TestV(t *testing.T) {
 	setFlags()

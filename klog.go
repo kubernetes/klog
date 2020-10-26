@@ -762,7 +762,13 @@ func (l *loggingT) errorS(err error, loggr logr.Logger, msg string, keysAndValue
 		loggr.Error(err, msg, keysAndValues)
 		return
 	}
-	l.printS(err, msg, keysAndValues...)
+	l.printS(errorLog, err, msg, keysAndValues...)
+}
+
+// Outputs warning log to the logging module. We can't delegate logs to a
+// logr here because logr's interface doesn't support warning logs.
+func (l *loggingT) warningS(msg string, keysAndValues ...interface{}) {
+	l.printS(warningLog, nil, msg, keysAndValues...)
 }
 
 // if loggr is specified, will call loggr.Info, otherwise output with logging module.
@@ -771,12 +777,12 @@ func (l *loggingT) infoS(loggr logr.Logger, msg string, keysAndValues ...interfa
 		loggr.Info(msg, keysAndValues)
 		return
 	}
-	l.printS(nil, msg, keysAndValues...)
+	l.printS(infoLog, nil, msg, keysAndValues...)
 }
 
 // printS is called from infoS and errorS if loggr is not specified.
 // if err arguments is specified, will output to errorLog severity
-func (l *loggingT) printS(err error, msg string, keysAndValues ...interface{}) {
+func (l *loggingT) printS(sev severity, err error, msg string, keysAndValues ...interface{}) {
 	b := &bytes.Buffer{}
 	b.WriteString(fmt.Sprintf("%q", msg))
 	if err != nil {
@@ -784,13 +790,7 @@ func (l *loggingT) printS(err error, msg string, keysAndValues ...interface{}) {
 		b.WriteString(fmt.Sprintf("err=%q", err.Error()))
 	}
 	kvListFormat(b, keysAndValues...)
-	var s severity
-	if err == nil {
-		s = infoLog
-	} else {
-		s = errorLog
-	}
-	l.printDepth(s, logging.logr, 2, b)
+	l.printDepth(sev, logging.logr, 2, b)
 }
 
 const missingValue = "(MISSING)"
@@ -1414,6 +1414,18 @@ func Warningln(args ...interface{}) {
 // Arguments are handled in the manner of fmt.Printf; a newline is appended if missing.
 func Warningf(format string, args ...interface{}) {
 	logging.printf(warningLog, logging.logr, format, args...)
+}
+
+// WarningS structured logs to the INFO and WARNING logs.
+// The msg argument used to add constant description to the log line.
+// The key/value pairs would be join by "=" ; a newline is always appended.
+//
+// Basic examples:
+// >> klog.WarningS("Page size is invalid", "page_size", "something", "error", err)
+// output:
+// >> W1025 00:15:15.525108       1 controller_utils.go:351] "Page size is invalid" page_size="something" error="test error"
+func WarningS(msg string, keysAndValues ...interface{}) {
+	logging.warningS(msg, keysAndValues...)
 }
 
 // Error logs to the ERROR, WARNING, and INFO logs.
