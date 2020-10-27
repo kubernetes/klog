@@ -759,7 +759,7 @@ func (l *loggingT) printWithFileLine(s severity, logr logr.Logger, file string, 
 // if loggr is specified, will call loggr.Error, otherwise output with logging module.
 func (l *loggingT) errorS(err error, loggr logr.Logger, msg string, keysAndValues ...interface{}) {
 	if loggr != nil {
-		loggr.Error(err, msg, keysAndValues)
+		loggr.Error(err, msg, keysAndValues...)
 		return
 	}
 	l.printS(err, msg, keysAndValues...)
