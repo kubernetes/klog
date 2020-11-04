@@ -405,6 +405,10 @@ type flushSyncWriter interface {
 func init() {
 	logging.stderrThreshold = errorLog // Default stderrThreshold is ERROR.
 	stop, done := make(chan struct{}), make(chan struct{})
+<<<<<<< HEAD
+=======
+	ticker := time.NewTicker(10)
+>>>>>>> 5762b4f... Resolved go routine leak when flushing the logs after a time interval
 	logging.setVState(0, nil, false)
 	logging.logDir = ""
 	logging.logFile = ""
@@ -415,8 +419,13 @@ func init() {
 	logging.addDirHeader = false
 	logging.skipLogHeaders = false
 	logging.oneOutput = false
+<<<<<<< HEAD
 	go logging.flushDaemon(stop, done)
 	go func() {
+=======
+	go logging.flushDaemon(stop, done, ticker)
+	go func(){
+>>>>>>> 5762b4f... Resolved go routine leak when flushing the logs after a time interval
 		close(stop)
 	}()
 	<-done
