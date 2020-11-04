@@ -1170,6 +1170,7 @@ func (l *loggingT) createFiles(sev severity) error {
 const flushInterval = 5 * time.Second
 
 // flushDaemon periodically flushes the log file buffers.
+// added a stop signal
 func (l *loggingT) flushDaemon(stop, done chan struct{}) {
 	ticker := time.NewTicker(flushInterval)
 	for range ticker.C {
