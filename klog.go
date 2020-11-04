@@ -416,7 +416,7 @@ func init() {
 	logging.skipLogHeaders = false
 	logging.oneOutput = false
 	go logging.flushDaemon(stop, done)
-	go func(){
+	go func() {
 		close(stop)
 	}()
 	<-done
