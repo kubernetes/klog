@@ -416,7 +416,7 @@ func init() {
 	logging.skipLogHeaders = false
 	logging.oneOutput = false
 	go logging.flushDaemon(stop, done)
-	go func(){
+	go func() {
 		close(stop)
 	}()
 	<-done
@@ -1553,6 +1553,7 @@ type LogFilter interface {
 	FilterS(msg string, keysAndValues []interface{}) (string, []interface{})
 }
 
+// SetLogFilter will add lg filter
 func SetLogFilter(filter LogFilter) {
 	logging.mu.Lock()
 	defer logging.mu.Unlock()
