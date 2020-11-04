@@ -404,6 +404,7 @@ type flushSyncWriter interface {
 // init sets up the defaults and runs flushDaemon.
 func init() {
 	logging.stderrThreshold = errorLog // Default stderrThreshold is ERROR.
+	stop, done := make(chan struct{}), make(chan struct{})
 	logging.setVState(0, nil, false)
 	logging.logDir = ""
 	logging.logFile = ""
@@ -414,7 +415,12 @@ func init() {
 	logging.addDirHeader = false
 	logging.skipLogHeaders = false
 	logging.oneOutput = false
-	go logging.flushDaemon()
+	go logging.flushDaemon(stop, done)
+	go func() {
+		time.Sleep(6 * time.Second)
+		close(stop)
+	}()
+	<-done
 }
 
 // InitFlags is for explicitly initializing the flags.
@@ -1165,9 +1171,17 @@ func (l *loggingT) createFiles(sev severity) error {
 const flushInterval = 5 * time.Second
 
 // flushDaemon periodically flushes the log file buffers.
-func (l *loggingT) flushDaemon() {
-	for range time.NewTicker(flushInterval).C {
-		l.lockAndFlushAll()
+// added a stop signal
+func (l *loggingT) flushDaemon(stop, done chan struct{}) {
+	ticker := time.NewTicker(flushInterval)
+	for {
+		select {
+		case <-stop:
+			continue
+		case <-ticker.C:
+			l.lockAndFlushAll()
+			close(done)
+		}
 	}
 }
 
@@ -1541,6 +1555,7 @@ type LogFilter interface {
 	FilterS(msg string, keysAndValues []interface{}) (string, []interface{})
 }
 
+// SetLogFilter will add lg filter
 func SetLogFilter(filter LogFilter) {
 	logging.mu.Lock()
 	defer logging.mu.Unlock()
