@@ -405,7 +405,6 @@ type flushSyncWriter interface {
 func init() {
 	logging.stderrThreshold = errorLog // Default stderrThreshold is ERROR.
 	stop, done := make(chan struct{}), make(chan struct{})
-	ticker := time.NewTicker(10)
 	logging.setVState(0, nil, false)
 	logging.logDir = ""
 	logging.logFile = ""
@@ -416,7 +415,7 @@ func init() {
 	logging.addDirHeader = false
 	logging.skipLogHeaders = false
 	logging.oneOutput = false
-	go logging.flushDaemon(stop, done, ticker)
+	go logging.flushDaemon(stop, done)
 	go func(){
 		close(stop)
 	}()
@@ -1171,16 +1170,17 @@ func (l *loggingT) createFiles(sev severity) error {
 const flushInterval = 5 * time.Second
 
 // flushDaemon periodically flushes the log file buffers.
-func (l *loggingT) flushDaemon(stop, done chan struct{}, ticker *time.Ticker) {
-	for range time.NewTicker(flushInterval).C {
+func (l *loggingT) flushDaemon(stop, done chan struct{}) {
+	ticker := time.NewTicker(flushInterval)
+	for range ticker.C {
 		select {
-		case tick := <-ticker.C:
-			fmt.Println(tick.Second())
-			l.lockAndFlushAll()
 		case <-stop:
 			close(done)
 			return
-		}	}
+		default:
+			l.lockAndFlushAll()
+		}
+	}
 }
 
 // lockAndFlushAll is like flushAll but locks l.mu first.
