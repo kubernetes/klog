@@ -97,10 +97,9 @@ func setFlags() {
 	logging.addDirHeader = false
 }
 
-func setTicker() (chan struct{}, chan struct{}, *time.Ticker){
+func setTicker() (chan struct{}, chan struct{}){
 	stop, done := make(chan struct{}), make(chan struct{})
-	ticker := time.NewTicker(10)
-	return stop, done, ticker
+	return stop, done
 }
 
 // Test that Info works as advertised.
@@ -377,12 +376,12 @@ func TestVmoduleOff(t *testing.T) {
 
 func TestSetOutputDataRace(t *testing.T) {
 	setFlags()
-	stop, done, ticker := setTicker()
+	stop, done := setTicker()
 	defer logging.swap(logging.newBuffers())
 	var wg sync.WaitGroup
 	for i := 1; i <= 50; i++ {
 		go func() {
-			logging.flushDaemon(stop, done, ticker)
+			logging.flushDaemon(stop, done)
 		}()
 	}
 	for i := 1; i <= 50; i++ {
@@ -394,7 +393,7 @@ func TestSetOutputDataRace(t *testing.T) {
 	}
 	for i := 1; i <= 50; i++ {
 		go func() {
-			logging.flushDaemon(stop, done, ticker)
+			logging.flushDaemon(stop, done)
 		}()
 	}
 	for i := 1; i <= 50; i++ {
@@ -406,7 +405,7 @@ func TestSetOutputDataRace(t *testing.T) {
 	}
 	for i := 1; i <= 50; i++ {
 		go func() {
-			logging.flushDaemon(stop, done, ticker)
+			logging.flushDaemon(stop, done)
 		}()
 	}
 	wg.Wait()
