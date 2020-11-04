@@ -97,7 +97,7 @@ func setFlags() {
 	logging.addDirHeader = false
 }
 
-func setTicker() (chan struct{}, chan struct{}){
+func setTicker() (chan struct{}, chan struct{}) {
 	stop, done := make(chan struct{}), make(chan struct{})
 	return stop, done
 }
