@@ -783,6 +783,16 @@ func (l *loggingT) errorS(err error, loggr logr.Logger, filter LogFilter, msg st
 	l.printS(err, msg, keysAndValues...)
 }
 
+// errorDepthS acts as errorS but uses depth to determine which call frame to log.
+// It cannot take a logr.Logger as depth isn't part of its interface.
+func (l *loggingT) errorDepthS(depth int, err error, filter LogFilter, msg string, keysAndValues ...interface{}) {
+	if filter != nil {
+		msg, keysAndValues = filter.FilterS(msg, keysAndValues)
+	}
+
+	l.printDepthS(depth, err, msg, keysAndValues...)
+}
+
 // if loggr is specified, will call loggr.Info, otherwise output with logging module.
 func (l *loggingT) infoS(loggr logr.Logger, filter LogFilter, msg string, keysAndValues ...interface{}) {
 	if filter != nil {
@@ -795,9 +805,24 @@ func (l *loggingT) infoS(loggr logr.Logger, filter LogFilter, msg string, keysAn
 	l.printS(nil, msg, keysAndValues...)
 }
 
-// printS is called from infoS and errorS if loggr is not specified.
-// if err arguments is specified, will output to errorLog severity
+// infoDepthS acts as infoS but uses depth to determine which call frame to log.
+// It cannot take a logr.Logger as depth isn't part of its interface.
+func (l *loggingT) infoDepthS(depth int, filter LogFilter, msg string, keysAndValues ...interface{}) {
+	if filter != nil {
+		msg, keysAndValues = filter.FilterS(msg, keysAndValues)
+	}
+
+	l.printDepthS(depth, nil, msg, keysAndValues...)
+}
+
+// printS is printDepthS with a depth of 2
 func (l *loggingT) printS(err error, msg string, keysAndValues ...interface{}) {
+	l.printDepthS(2, err, msg, keysAndValues...)
+}
+
+// printDepthS is called from infoS and errorS if loggr is not specified.
+// if err arguments is specified, will output to errorLog severity
+func (l *loggingT) printDepthS(depth int, err error, msg string, keysAndValues ...interface{}) {
 	b := &bytes.Buffer{}
 	b.WriteString(fmt.Sprintf("%q", msg))
 	if err != nil {
@@ -811,7 +836,7 @@ func (l *loggingT) printS(err error, msg string, keysAndValues ...interface{}) {
 	} else {
 		s = errorLog
 	}
-	l.printDepth(s, logging.logr, nil, 2, b)
+	l.printDepth(s, logging.logr, nil, depth, b)
 }
 
 const missingValue = "(MISSING)"
@@ -1414,6 +1439,13 @@ func InfoS(msg string, keysAndValues ...interface{}) {
 	logging.infoS(logging.logr, logging.filter, msg, keysAndValues...)
 }
 
+// InfoDepthS same as InfoS but uses depth to determine which call frame to log.
+// InfoDepthS(0, "msg") is the same as InfoS("msg").
+func InfoDepthS(depth int, msg string, keysAndValues ...interface{}) {
+	// there are two calls between here and printS
+	logging.infoDepthS(depth+2, logging.filter, msg, keysAndValues...)
+}
+
 // Warning logs to the WARNING and INFO logs.
 // Arguments are handled in the manner of fmt.Print; a newline is appended if missing.
 func Warning(args ...interface{}) {
@@ -1473,6 +1505,13 @@ func Errorf(format string, args ...interface{}) {
 // >> E1025 00:15:15.525108       1 controller_utils.go:114] "Failed to update pod status" err="timeout"
 func ErrorS(err error, msg string, keysAndValues ...interface{}) {
 	logging.errorS(err, logging.logr, logging.filter, msg, keysAndValues...)
+}
+
+// ErrorDepthS acts as ErrorS but uses depth to determine which call frame to log.
+// ErrorDepthS(0, "msg") is the same as ErrorS("msg").
+func ErrorDepthS(depth int, err error, msg string, keysAndValues ...interface{}) {
+	// There are two calls between here and printDepth
+	logging.errorDepthS(depth+2, err, logging.filter, msg, keysAndValues...)
 }
 
 // Fatal logs to the FATAL, ERROR, WARNING, and INFO logs,
