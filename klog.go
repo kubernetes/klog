@@ -780,7 +780,7 @@ func (l *loggingT) errorS(err error, loggr logr.Logger, filter LogFilter, msg st
 		loggr.Error(err, msg, keysAndValues...)
 		return
 	}
-	l.printDepthS(2, err, msg, keysAndValues...)
+	l.printS(err, msg, keysAndValues...)
 }
 
 // errorDepthS acts as errorS but uses depth to determine which call frame to log.
@@ -802,7 +802,7 @@ func (l *loggingT) infoS(loggr logr.Logger, filter LogFilter, msg string, keysAn
 		loggr.Info(msg, keysAndValues...)
 		return
 	}
-	l.printDepthS(2, nil, msg, keysAndValues...)
+	l.printS(nil, msg, keysAndValues...)
 }
 
 // infoDepthS acts as infoS but uses depth to determine which call frame to log.
@@ -815,9 +815,9 @@ func (l *loggingT) infoDepthS(depth int, filter LogFilter, msg string, keysAndVa
 	l.printDepthS(depth, nil, msg, keysAndValues...)
 }
 
-// printS is printDepthS with a depth of 2
+// printS is printDepthS with a depth of 3 (it takes two calls to reach it, and itself)
 func (l *loggingT) printS(err error, msg string, keysAndValues ...interface{}) {
-	l.printDepthS(2, err, msg, keysAndValues...)
+	l.printDepthS(3, err, msg, keysAndValues...)
 }
 
 // printDepthS is called from infoS and errorS if loggr is not specified.
@@ -1443,7 +1443,7 @@ func InfoS(msg string, keysAndValues ...interface{}) {
 // InfoDepthS(0, "msg") is the same as InfoS("msg").
 func InfoDepthS(depth int, msg string, keysAndValues ...interface{}) {
 	// There are two calls between here and printS
-	logging.infoDepthS(depth+2, logging.filter, msg, keysAndValues...)
+	logging.infoDepthS(depth, logging.filter, msg, keysAndValues...)
 }
 
 // Warning logs to the WARNING and INFO logs.
@@ -1511,7 +1511,7 @@ func ErrorS(err error, msg string, keysAndValues ...interface{}) {
 // ErrorDepthS(0, "msg") is the same as ErrorS("msg").
 func ErrorDepthS(depth int, err error, msg string, keysAndValues ...interface{}) {
 	// There are two calls between here and printDepth
-	logging.errorDepthS(depth+2, err, logging.filter, msg, keysAndValues...)
+	logging.errorDepthS(depth, err, logging.filter, msg, keysAndValues...)
 }
 
 // Fatal logs to the FATAL, ERROR, WARNING, and INFO logs,
