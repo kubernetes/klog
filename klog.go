@@ -780,7 +780,7 @@ func (l *loggingT) errorS(err error, loggr logr.Logger, filter LogFilter, msg st
 		loggr.Error(err, msg, keysAndValues...)
 		return
 	}
-	l.printS(err, msg, keysAndValues...)
+	l.printDepthS(2, err, msg, keysAndValues...)
 }
 
 // errorDepthS acts as errorS but uses depth to determine which call frame to log.
@@ -802,7 +802,7 @@ func (l *loggingT) infoS(loggr logr.Logger, filter LogFilter, msg string, keysAn
 		loggr.Info(msg, keysAndValues...)
 		return
 	}
-	l.printS(nil, msg, keysAndValues...)
+	l.printDepthS(2, nil, msg, keysAndValues...)
 }
 
 // infoDepthS acts as infoS but uses depth to determine which call frame to log.
@@ -1442,7 +1442,7 @@ func InfoS(msg string, keysAndValues ...interface{}) {
 // InfoDepthS same as InfoS but uses depth to determine which call frame to log.
 // InfoDepthS(0, "msg") is the same as InfoS("msg").
 func InfoDepthS(depth int, msg string, keysAndValues ...interface{}) {
-	// there are two calls between here and printS
+	// There are two calls between here and printS
 	logging.infoDepthS(depth+2, logging.filter, msg, keysAndValues...)
 }
 
