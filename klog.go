@@ -417,7 +417,7 @@ func init() {
 	logging.oneOutput = false
 	go logging.flushDaemon(stop, done)
 	go func() {
-		time.Sleep(6 * time.Second)
+		time.Sleep(20 * time.Second)
 		close(stop)
 	}()
 	<-done
@@ -1176,10 +1176,9 @@ func (l *loggingT) flushDaemon(stop, done chan struct{}) {
 	ticker := time.NewTicker(flushInterval)
 	for {
 		select {
-		case <-stop:
-			continue
 		case <-ticker.C:
 			l.lockAndFlushAll()
+		case <-stop:
 			close(done)
 			return
 		}
