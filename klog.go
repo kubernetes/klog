@@ -408,6 +408,8 @@ func init() {
 	logging.logDir = ""
 	logging.logFile = ""
 	logging.logFileMaxSizeMB = 1800
+	logging.logFileMaxBackups = 0
+	logging.logFileIndex = 1
 	logging.toStderr = true
 	logging.alsoToStderr = false
 	logging.skipHeaders = false
@@ -424,10 +426,12 @@ func InitFlags(flagset *flag.FlagSet) {
 	}
 
 	flagset.StringVar(&logging.logDir, "log_dir", logging.logDir, "If non-empty, write log files in this directory")
-	flagset.StringVar(&logging.logFile, "log_file", logging.logFile, "If non-empty, use this log file")
+	flagset.StringVar(&logging.logFile, "log_file", logging.logFile, "If non-empty, use this log file (mutually exclusive with the log-dir option)")
 	flagset.Uint64Var(&logging.logFileMaxSizeMB, "log_file_max_size", logging.logFileMaxSizeMB,
 		"Defines the maximum size a log file can grow to. Unit is megabytes. "+
 			"If the value is 0, the maximum file size is unlimited.")
+	flagset.IntVar(&logging.logFileMaxBackups, "log_file_max_backups", logging.logFileMaxBackups,
+		"Defines the max number rotation log files kept. If this value is 0, no backup rotation file will be kept")
 	flagset.BoolVar(&logging.toStderr, "logtostderr", logging.toStderr, "log to standard error instead of files")
 	flagset.BoolVar(&logging.alsoToStderr, "alsologtostderr", logging.alsoToStderr, "log to standard error as well as files")
 	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
@@ -495,6 +499,12 @@ type loggingT struct {
 	// When logFile is specified, this limiter makes sure the logFile won't exceeds a certain size. When exceeds, the
 	// logFile will be cleaned up. If this value is 0, no size limitation will be applied to logFile.
 	logFileMaxSizeMB uint64
+
+	// Keep the logFileMaxBackups rotation log files. If this value is 0, no backup rotation file will be kept.
+	logFileMaxBackups int
+
+	// Record every logFile a increase index, to avoid log loss when log rotate twice in one second
+	logFileIndex uint64
 
 	// If true, do not add the prefix headers, useful when used with SetOutput
 	skipHeaders bool
