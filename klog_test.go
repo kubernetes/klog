@@ -1398,19 +1398,20 @@ func (l *testLogr) WithValues(...interface{}) logr.Logger {
 
 // existedFlag contains all existed flag, without KlogPrefix
 var existedFlag = map[string]struct{}{
-	"log_dir":           {},
-	"add_dir_header":    {},
-	"alsologtostderr":   {},
-	"log_backtrace_at":  {},
-	"log_file":          {},
-	"log_file_max_size": {},
-	"logtostderr":       {},
-	"one_output":        {},
-	"skip_headers":      {},
-	"skip_log_headers":  {},
-	"stderrthreshold":   {},
-	"v":                 {},
-	"vmodule":           {},
+	"add_dir_header":            {},
+	"alsologtostderr":           {},
+	"log_backtrace_at":          {},
+	"log_file":                  {},
+	"log_file_max_size":         {},
+	"klog_log_file_max_backups": {},
+	"logtostderr":               {},
+	"log_dir":                   {},
+	"one_output":                {},
+	"skip_headers":              {},
+	"skip_log_headers":          {},
+	"stderrthreshold":           {},
+	"v":                         {},
+	"vmodule":                   {},
 }
 
 // KlogPrefix define new flag prefix
