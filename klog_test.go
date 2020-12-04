@@ -1243,6 +1243,74 @@ func TestLogFilter(t *testing.T) {
 	}
 }
 
+func TestLogLevelWithLogrAddedFields(t *testing.T) {
+	logger := new(testLogr)
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Errorf("Unable to get source file info")
+	}
+	thisFile := filepath.Base(file)
+
+	testCases := []struct {
+		name     string
+		logFunc  func(args ...interface{})
+		expected testLogrEntry
+	}{{
+		name:    "Info",
+		logFunc: Info,
+		expected: testLogrEntry{
+			severity:      infoLog,
+			msg:           "foo\n",
+			keysAndValues: []interface{}{"severity", severityName[infoLog], "file", thisFile, "line", 999},
+		},
+	}, {
+		name:    "Warning",
+		logFunc: Warning,
+		expected: testLogrEntry{
+			severity:      infoLog,
+			msg:           "foo\n",
+			keysAndValues: []interface{}{"severity", severityName[warningLog], "file", thisFile, "line", 999},
+		},
+	}, {
+		name:    "Error",
+		logFunc: Error,
+		expected: testLogrEntry{
+			severity:      errorLog,
+			msg:           "foo\n",
+			keysAndValues: []interface{}{"severity", severityName[errorLog], "file", thisFile, "line", 999},
+		},
+	}}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			SetLogger(logger)
+			defer SetLogger(nil)
+			defer logger.reset()
+
+			tc.logFunc("foo")
+
+			// Set line number to known value so test isn't brittle.
+			for _, e := range logger.entries {
+				foundLineKey := false
+				for i, f := range e.keysAndValues {
+					if foundLineKey {
+						e.keysAndValues[i] = 999
+						foundLineKey = false
+					}
+					if f == "line" {
+						foundLineKey = true
+					}
+				}
+			}
+
+			if !reflect.DeepEqual(logger.entries, []testLogrEntry{tc.expected}) {
+				t.Errorf("expected: %+v; but got: %+v", []testLogrEntry{tc.expected}, logger.entries)
+			}
+		})
+	}
+}
+
 func TestInfoSWithLogr(t *testing.T) {
 	logger := new(testLogr)
 
