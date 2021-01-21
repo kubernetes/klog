@@ -223,10 +223,11 @@ func (l klogger) Error(err error, msg string, kvList ...interface{}) {
 	switch l.format {
 	case FormatSerialize:
 		errStr := flatten("error", loggableErr)
+		errVerboseStr := flatten("errorVerbose", fmt.Sprintf("%+v", err))
 		trimmed := trimDuplicates(l.values, kvList)
 		fixedStr := flatten(trimmed[0]...)
 		userStr := flatten(trimmed[1]...)
-		klog.ErrorDepth(framesToCaller()+l.callDepth, l.prefix, " ", msgStr, " ", errStr, " ", fixedStr, " ", userStr)
+		klog.ErrorDepth(framesToCaller()+l.callDepth, l.prefix, " ", msgStr, " ", errStr, " ", errVerboseStr, " ", fixedStr, " ", userStr)
 	case FormatKlog:
 		trimmed := trimDuplicates(l.values, kvList)
 		if l.prefix != "" {
