@@ -43,7 +43,10 @@
 //		Logs are written to standard error instead of to files.
 //	-alsologtostderr=false
 //		Logs are written to standard error as well as to files.
-//	-stderrthreshold=ERROR
+//	-stderrthreshold=INFO
+//		Log events at or above this severity are logged to standard
+//		error.
+//	-alsotostderrthreshold=ERROR
 //		Log events at or above this severity are logged to standard
 //		error as well as to files.
 //	-log_dir=""
@@ -91,10 +94,10 @@ import (
 	"github.com/go-logr/logr"
 )
 
-// severity identifies the sort of log: info, warning etc. It also implements
-// the flag.Value interface. The -stderrthreshold flag is of type severity and
-// should be modified only through the flag.Value interface. The values match
-// the corresponding constants in C++.
+// severity identifies the sort of log: info, warning etc. It also implements the
+// flag.Value interface. The -stderrthreshold and -alsotostderrthreshold flags are
+// of type severity and should be modified only through the flag.Value interface.
+// The values match the corresponding constants in C++.
 type severity int32 // sync/atomic int32
 
 // These constants identify the log levels in order of increasing severity.
@@ -403,7 +406,8 @@ type flushSyncWriter interface {
 
 // init sets up the defaults and runs flushDaemon.
 func init() {
-	logging.stderrThreshold = errorLog // Default stderrThreshold is ERROR.
+	logging.stderrThreshold = infoLog        // Default stderrThreshold is ERROR.
+	logging.alsoToStderrThreshold = errorLog // Default alsoToStderrThreshold is ERROR.
 	logging.setVState(0, nil, false)
 	logging.logDir = ""
 	logging.logFile = ""
@@ -436,6 +440,7 @@ func InitFlags(flagset *flag.FlagSet) {
 	flagset.BoolVar(&logging.oneOutput, "one_output", logging.oneOutput, "If true, only write logs to their native severity level (vs also writing to each lower severity level)")
 	flagset.BoolVar(&logging.skipLogHeaders, "skip_log_headers", logging.skipLogHeaders, "If true, avoid headers when opening log files")
 	flagset.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
+	flagset.Var(&logging.alsoToStderrThreshold, "alsotostderrthreshold", "logs at or above this threshold go to stderr as well as files")
 	flagset.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	flagset.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 }
@@ -454,7 +459,8 @@ type loggingT struct {
 	alsoToStderr bool // The -alsologtostderr flag.
 
 	// Level flag. Handled atomically.
-	stderrThreshold severity // The -stderrthreshold flag.
+	stderrThreshold       severity // The -stderrthreshold flag.
+	alsoToStderrThreshold severity // The -alsotostderrthreshold flag.
 
 	// freeList is a list of byte buffers, maintained under freeListMu.
 	freeList *buffer
@@ -915,9 +921,11 @@ func (l *loggingT) output(s severity, log logr.Logger, buf *buffer, file string,
 			log.Info(string(data))
 		}
 	} else if l.toStderr {
-		os.Stderr.Write(data)
+		if s >= l.stderrThreshold.get() {
+			os.Stderr.Write(data)
+		}
 	} else {
-		if alsoToStderr || l.alsoToStderr || s >= l.stderrThreshold.get() {
+		if alsoToStderr || l.alsoToStderr || s >= l.alsoToStderrThreshold.get() {
 			os.Stderr.Write(data)
 		}
 
@@ -968,7 +976,7 @@ func (l *loggingT) output(s severity, log logr.Logger, buf *buffer, file string,
 		// Dump all goroutine stacks before exiting.
 		trace := stacks(true)
 		// Write the stack trace for all goroutines to the stderr.
-		if l.toStderr || l.alsoToStderr || s >= l.stderrThreshold.get() || alsoToStderr {
+		if l.toStderr || l.alsoToStderr || s >= l.alsoToStderrThreshold.get() || alsoToStderr {
 			os.Stderr.Write(trace)
 		}
 		// Write the stack trace for all goroutines to the files.
