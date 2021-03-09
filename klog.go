@@ -46,7 +46,7 @@
 //	-stderrthreshold=INFO
 //		Log events at or above this severity are logged to standard
 //		error.
-//	-alsotostderrthreshold=ERROR
+//	-alsologtostderrthreshold=ERROR
 //		Log events at or above this severity are logged to standard
 //		error as well as to files.
 //	-log_dir=""
@@ -95,7 +95,7 @@ import (
 )
 
 // severity identifies the sort of log: info, warning etc. It also implements the
-// flag.Value interface. The -stderrthreshold and -alsotostderrthreshold flags are
+// flag.Value interface. The -stderrthreshold and -alsologtostderrthreshold flags are
 // of type severity and should be modified only through the flag.Value interface.
 // The values match the corresponding constants in C++.
 type severity int32 // sync/atomic int32
@@ -440,7 +440,7 @@ func InitFlags(flagset *flag.FlagSet) {
 	flagset.BoolVar(&logging.oneOutput, "one_output", logging.oneOutput, "If true, only write logs to their native severity level (vs also writing to each lower severity level)")
 	flagset.BoolVar(&logging.skipLogHeaders, "skip_log_headers", logging.skipLogHeaders, "If true, avoid headers when opening log files")
 	flagset.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr")
-	flagset.Var(&logging.alsoToStderrThreshold, "alsotostderrthreshold", "logs at or above this threshold go to stderr as well as files")
+	flagset.Var(&logging.alsoToStderrThreshold, "alsologtostderrthreshold", "logs at or above this threshold go to stderr as well as files")
 	flagset.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	flagset.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 }
@@ -460,7 +460,7 @@ type loggingT struct {
 
 	// Level flag. Handled atomically.
 	stderrThreshold       severity // The -stderrthreshold flag.
-	alsoToStderrThreshold severity // The -alsotostderrthreshold flag.
+	alsoToStderrThreshold severity // The -alsologtostderrthreshold flag.
 
 	// freeList is a list of byte buffers, maintained under freeListMu.
 	freeList *buffer

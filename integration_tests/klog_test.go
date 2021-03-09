@@ -98,7 +98,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 		"everything disabled": {
 			// Nothing, including the trace on fatal, is showing anywhere
 
-			flags: []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags: []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-alsologtostderrthreshold=1000"},
 
 			notExpectedOnStderr: allLogREs,
 		},
@@ -106,7 +106,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything above -stderrthreshold, including the trace on fatal, will
 			// be logged to stderr, even if we set -logtostderr to false.
 
-			flags: []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1"},
+			flags: []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1", "-alsologtostderrthreshold=1"},
 
 			expectedOnStderr:    res{warningLogRE, errorLogRE, stackTraceRE},
 			notExpectedOnStderr: res{infoLogRE},
@@ -114,7 +114,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 		"with logtostderr only": {
 			// Everything, including the trace on fatal, goes to stderr
 
-			flags: []string{"-logtostderr=true", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags: []string{"-logtostderr=true", "-alsologtostderr=false", "-stderrthreshold=0", "-alsologtostderrthreshold=1000"},
 
 			expectedOnStderr: allLogREs,
 		},
@@ -122,7 +122,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything, including the trace on fatal, goes to the single log file
 
 			logfile: true,
-			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-alsologtostderrthreshold=1000"},
 
 			expectedLogFile: true,
 
@@ -133,7 +133,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything, including the trace on fatal, goes to the log files in the log dir
 
 			logdir: true,
-			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-alsologtostderrthreshold=1000"},
 
 			expectedLogDir: true,
 
@@ -145,7 +145,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything, including the trace on fatal, goes to the log files in the log dir
 
 			logdir: true,
-			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-one_output=true"},
+			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-alsologtostderrthreshold=1000", "-one_output=true"},
 
 			expectedLogDir: true,
 
@@ -158,7 +158,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// ignored, nothing goes to the log files in the log dir.
 
 			logdir: true,
-			flags:  []string{"-logtostderr=true", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags:  []string{"-logtostderr=true", "-alsologtostderr=false", "-stderrthreshold=0", "-alsologtostderrthreshold=1000"},
 
 			expectedOnStderr: allLogREs,
 		},
@@ -168,7 +168,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 
 			logdir:  true,
 			logfile: true,
-			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-alsologtostderrthreshold=1000"},
 
 			expectedLogFile: true,
 
@@ -179,7 +179,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything, including the trace on fatal, goes to the single log file
 			// AND to stderr.
 
-			flags:   []string{"-alsologtostderr=true", "-logtostderr=false", "-stderrthreshold=1000"},
+			flags:   []string{"-alsologtostderr=true", "-logtostderr=false", "-stderrthreshold=1000", "-alsologtostderrthreshold=0"},
 			logfile: true,
 
 			expectedLogFile: true,
@@ -192,7 +192,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// log dir AND to stderr.
 
 			logdir: true,
-			flags:  []string{"-alsologtostderr=true", "-logtostderr=false", "-stderrthreshold=1000"},
+			flags:  []string{"-alsologtostderr=true", "-logtostderr=false", "-stderrthreshold=1000", "-alsologtostderrthreshold=0"},
 
 			expectedLogDir: true,
 
@@ -205,7 +205,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// log dir AND to stderr.
 
 			logdir: true,
-			flags:  []string{"-alsologtostderr=true", "-logtostderr=false", "-stderrthreshold=1000", "-one_output=true"},
+			flags:  []string{"-alsologtostderr=true", "-logtostderr=false", "-stderrthreshold=1000", "-alsotostderrthreshold=0", "-one_output=true"},
 
 			expectedLogDir: true,
 
