@@ -19,9 +19,12 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"os"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/singlechecker"
+	"golang.org/x/tools/go/packages"
 )
 
 // Doc explaining the tool.
@@ -35,6 +38,7 @@ var Analyzer = &analysis.Analyzer{
 }
 
 func main() {
+	handleErrors()
 	singlechecker.Main(Analyzer)
 }
 
@@ -109,4 +113,34 @@ func isUnstructured(fName string) bool {
 	}
 
 	return false
+}
+
+// handleErrors exits with code 0 for "no Go files" errors
+// and code 1 for all other errors while loading packages
+// that match provided pattern.
+func handleErrors() {
+	pkgs, err := packages.Load(nil, os.Args[1:]...)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	// count of "no Go files" errors
+	goFileErrorsCount := 0
+	// count of errors excluding "no Go files" errors
+	otherErrorsCount := 0
+	packages.Visit(pkgs, nil, func(pkg *packages.Package) {
+		for _, err := range pkg.Errors {
+			fmt.Fprintln(os.Stderr, err)
+			if strings.Contains(err.Msg, "no Go files") {
+				goFileErrorsCount++
+				continue
+			}
+			otherErrorsCount++
+		}
+	})
+	if otherErrorsCount > 0 { // if there are errors other than "no Go files" errors, exit with code 1
+		os.Exit(1)
+	} else if otherErrorsCount == 0 && goFileErrorsCount > 0 { // if there are only "no Go files" errors, exit with code 0
+		os.Exit(0)
+	}
 }
