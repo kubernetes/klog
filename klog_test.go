@@ -884,6 +884,56 @@ func TestInfoS(t *testing.T) {
 	}
 }
 
+func TestInfoSInvalid(t *testing.T) {
+	setFlags()
+	defer logging.swap(logging.newBuffers())
+	timeNow = func() time.Time {
+		return time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.Local)
+	}
+	pid = 1234
+	var testDataInfo = []struct {
+		msg string
+		format string
+		keysValues []interface{}
+	}{
+		{
+			msg: "test",
+			format: "I0102 15:04:05.067890    1234 klog_test.go:%d] \"Invalid Number of arguments\"\n",
+			keysValues: []interface{}{"pod", "kubedns", "test"},
+		},
+		{
+			msg: "test",
+			format: "I0102 15:04:05.067890    1234 klog_test.go:%d] \"Invalid value type for key, must be string\"\n",
+			keysValues: []interface{}{1, "kubedns"},
+		},
+		{
+			msg: "test",
+			format: "I0102 15:04:05.067890    1234 klog_test.go:%d] \"Invalid value for key, must be ascii\"\n",
+			keysValues: []interface{}{"琦xx", "kubedns"},
+		},
+	}
+	functions := []func(msg string, keyAndValues ...interface{}) {
+		InfoS,
+		myInfoS,
+	}
+	for _, f := range functions {
+		for _, data := range testDataInfo {
+			logging.file[infoLog] = &flushBuffer{}
+			f(data.msg, data.keysValues...)
+			var line int
+			n, err := fmt.Sscanf(contents(infoLog), data.format, &line)
+			if n != 1 || err != nil {
+				t.Errorf("log format error: %d elements, error %s:\n%s", n, err, contents(infoLog))
+			}
+			want := fmt.Sprintf(data.format, line)
+			if contents(infoLog) != want {
+				t.Errorf("InfoS has wrong format: \n got:\t%s\nwant:\t%s", contents(infoLog), want)
+			}
+		}
+	}
+
+}
+
 // Test that Verbose.InfoS works as advertised.
 func TestVInfoS(t *testing.T) {
 	setFlags()

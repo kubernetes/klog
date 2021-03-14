@@ -87,6 +87,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/go-logr/logr"
 )
@@ -773,9 +774,16 @@ func (l *loggingT) printWithFileLine(s severity, logr logr.Logger, filter LogFil
 
 // if loggr is specified, will call loggr.Error, otherwise output with logging module.
 func (l *loggingT) errorS(err error, loggr logr.Logger, filter LogFilter, depth int, msg string, keysAndValues ...interface{}) {
-	if filter != nil {
-		msg, keysAndValues = filter.FilterS(msg, keysAndValues)
+	valid, inValidmsg := isKeysValid(keysAndValues)
+	if !valid {
+		msg = inValidmsg
+		keysAndValues = make([]interface{}, 0)
+	} else {
+		if filter != nil {
+			msg, keysAndValues = filter.FilterS(msg, keysAndValues)
+		}
 	}
+	
 	if loggr != nil {
 		loggr.Error(err, msg, keysAndValues...)
 		return
@@ -785,9 +793,16 @@ func (l *loggingT) errorS(err error, loggr logr.Logger, filter LogFilter, depth 
 
 // if loggr is specified, will call loggr.Info, otherwise output with logging module.
 func (l *loggingT) infoS(loggr logr.Logger, filter LogFilter, depth int, msg string, keysAndValues ...interface{}) {
-	if filter != nil {
-		msg, keysAndValues = filter.FilterS(msg, keysAndValues)
+	valid, inValidmsg := isKeysValid(keysAndValues)
+	if !valid {
+		msg = inValidmsg
+		keysAndValues = make([]interface{}, 0)
+	} else {
+		if filter != nil {
+			msg, keysAndValues = filter.FilterS(msg, keysAndValues)
+		}
 	}
+	
 	if loggr != nil {
 		loggr.Info(msg, keysAndValues...)
 		return
@@ -1024,6 +1039,29 @@ func stacks(all bool) []byte {
 		n *= 2
 	}
 	return trace
+}
+
+// isKeysValid check if all keys in keyAndValues is string type 
+func isKeysValid(keysAndValues []interface{}) (bool, string) {
+	if (len(keysAndValues)%2!=0) {
+		return false, "Invalid Number of arguments"
+	}
+	for index := 0; index < len(keysAndValues); index++ {
+		if index%2 == 0 {
+			switch value := keysAndValues[index].(type) {
+			case string:
+				for index := 0; index < len(value); index++ {
+					if value[index] > unicode.MaxASCII {
+						return false, "Invalid value for key, must be ascii"
+					}
+				}
+				continue
+			default:
+				return false, "Invalid value type for key, must be string"
+			}
+		}
+	}
+	return true, ""
 }
 
 // logExitFunc provides a simple mechanism to override the default behavior
