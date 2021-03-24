@@ -898,6 +898,18 @@ func LogToStderr(stderr bool) {
 	logging.toStderr = stderr
 }
 
+// Determine whether the given path file/folder exists
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
+}
+
 // output writes the data to the log files and releases the buffer.
 func (l *loggingT) output(s severity, log logr.Logger, buf *buffer, file string, line int, alsoToStderr bool) {
 	l.mu.Lock()
@@ -923,12 +935,22 @@ func (l *loggingT) output(s severity, log logr.Logger, buf *buffer, file string,
 		}
 
 		if logging.logFile != "" {
+			sb, ok := logging.file[s].(*syncBuffer)
 			// Since we are using a single log file, all of the items in l.file array
 			// will point to the same file, so just use one of them to write data.
 			if l.file[infoLog] == nil {
 				if err := l.createFiles(infoLog); err != nil {
 					os.Stderr.Write(data) // Make sure the message appears somewhere.
 					l.exit(err)
+				}
+			} else if ok {
+				// Determine whether the file has been deleted or moved
+				// If the file does not exist, rebuild it
+				if !exists(logging.logFile) {
+					if err := sb.rotateFile(time.Now(), true); err != nil {
+						os.Stderr.Write(data) // Make sure the message appears somewhere.
+						l.exit(err)
+					}
 				}
 			}
 			l.file[infoLog].Write(data)

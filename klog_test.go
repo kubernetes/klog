@@ -729,6 +729,34 @@ func TestInitFlags(t *testing.T) {
 	}
 }
 
+func TestRebuildFile(t *testing.T) {
+	InitFlags(nil)
+	logFile := "/tmp/test-rebuild-file.log"
+	// By default klog writes to stderr. Setting logtostderr to false makes klog
+	// write to a log file.
+	flag.Set("logtostderr", "false")
+	flag.Set("log_file", logFile)
+	flag.Parse()
+
+	InfoS("nice to meet you !")
+	if err := os.Remove(logFile); err != nil {
+		t.Fatal(err)
+	}
+	rebuildContent := "This is a test file for the test log rebuild."
+	InfoS(rebuildContent)
+	if !exists(logFile) {
+		t.Fatalf("Test log rebuild failed for file: %s does not exist", logFile)
+	}
+	logging.flushAll()
+	b, err := ioutil.ReadFile(logging.logFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(string(b), rebuildContent) {
+		t.Fatalf("got %s, missing expected Info log: %s", string(b), rebuildContent)
+	}
+}
+
 func TestInfoObjectRef(t *testing.T) {
 	setFlags()
 	defer logging.swap(logging.newBuffers())
