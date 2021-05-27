@@ -35,6 +35,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+
+	"k8s.io/klog/v2/internal/test"
 )
 
 // TODO: This test package should be refactored so that tests cannot
@@ -633,7 +635,7 @@ func BenchmarkKRef(b *testing.B) {
 }
 
 func BenchmarkKObj(b *testing.B) {
-	a := kMetadataMock{name: "a", ns: "a"}
+	a := test.KMetadataMock{Name: "a", NS: "a"}
 	var r ObjectRef
 	for i := 0; i < b.N; i++ {
 		r = KObj(&a)
@@ -771,28 +773,6 @@ func TestInfoObjectRef(t *testing.T) {
 	}
 }
 
-type kMetadataMock struct {
-	name, ns string
-}
-
-func (m kMetadataMock) GetName() string {
-	return m.name
-}
-func (m kMetadataMock) GetNamespace() string {
-	return m.ns
-}
-
-type ptrKMetadataMock struct {
-	name, ns string
-}
-
-func (m *ptrKMetadataMock) GetName() string {
-	return m.name
-}
-func (m *ptrKMetadataMock) GetNamespace() string {
-	return m.ns
-}
-
 func TestKObj(t *testing.T) {
 	tests := []struct {
 		name string
@@ -801,17 +781,17 @@ func TestKObj(t *testing.T) {
 	}{
 		{
 			name: "nil passed as pointer KMetadata implementation",
-			obj:  (*ptrKMetadataMock)(nil),
+			obj:  (*test.PtrKMetadataMock)(nil),
 			want: ObjectRef{},
 		},
 		{
 			name: "empty struct passed as non-pointer KMetadata implementation",
-			obj:  kMetadataMock{},
+			obj:  test.KMetadataMock{},
 			want: ObjectRef{},
 		},
 		{
 			name: "nil pointer passed to non-pointer KMetadata implementation",
-			obj:  (*kMetadataMock)(nil),
+			obj:  (*test.KMetadataMock)(nil),
 			want: ObjectRef{},
 		},
 		{
@@ -821,7 +801,7 @@ func TestKObj(t *testing.T) {
 		},
 		{
 			name: "with ns",
-			obj:  &kMetadataMock{"test-name", "test-ns"},
+			obj:  &test.KMetadataMock{Name: "test-name", NS: "test-ns"},
 			want: ObjectRef{
 				Name:      "test-name",
 				Namespace: "test-ns",
@@ -829,7 +809,7 @@ func TestKObj(t *testing.T) {
 		},
 		{
 			name: "without ns",
-			obj:  &kMetadataMock{"test-name", ""},
+			obj:  &test.KMetadataMock{Name: "test-name", NS: ""},
 			want: ObjectRef{
 				Name: "test-name",
 			},
@@ -1033,87 +1013,6 @@ func TestErrorS(t *testing.T) {
 			if contents(errorLog) != want {
 				t.Errorf("ErrorS has wrong format: \n got:\t%s\nwant:\t%s", contents(errorLog), want)
 			}
-		}
-	}
-}
-
-// Test that kvListFormat works as advertised.
-func TestKvListFormat(t *testing.T) {
-	var testKVList = []struct {
-		keysValues []interface{}
-		want       string
-	}{
-		{
-			keysValues: []interface{}{"pod", "kubedns"},
-			want:       " pod=\"kubedns\"",
-		},
-		{
-			keysValues: []interface{}{"pod", "kubedns", "update", true},
-			want:       " pod=\"kubedns\" update=true",
-		},
-		{
-			keysValues: []interface{}{"pod", "kubedns", "spec", struct {
-				X int
-				Y string
-				N time.Time
-			}{X: 76, Y: "strval", N: time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.UTC)}},
-			want: " pod=\"kubedns\" spec={X:76 Y:strval N:2006-01-02 15:04:05.06789 +0000 UTC}",
-		},
-		{
-			keysValues: []interface{}{"pod", "kubedns", "values", []int{8, 6, 7, 5, 3, 0, 9}},
-			want:       " pod=\"kubedns\" values=[8 6 7 5 3 0 9]",
-		},
-		{
-			keysValues: []interface{}{"pod", "kubedns", "values", []string{"deployment", "svc", "configmap"}},
-			want:       " pod=\"kubedns\" values=[deployment svc configmap]",
-		},
-		{
-			keysValues: []interface{}{"pod", "kubedns", "bytes", []byte("test case for byte array")},
-			want:       " pod=\"kubedns\" bytes=\"test case for byte array\"",
-		},
-		{
-			keysValues: []interface{}{"pod", "kubedns", "bytes", []byte("��=� ⌘")},
-			want:       " pod=\"kubedns\" bytes=\"\\ufffd\\ufffd=\\ufffd \\u2318\"",
-		},
-		{
-			keysValues: []interface{}{"pod", "kubedns", "maps", map[string]int{"three": 4}},
-			want:       " pod=\"kubedns\" maps=map[three:4]",
-		},
-		{
-			keysValues: []interface{}{"pod", KRef("kube-system", "kubedns"), "status", "ready"},
-			want:       " pod=\"kube-system/kubedns\" status=\"ready\"",
-		},
-		{
-			keysValues: []interface{}{"pod", KRef("", "kubedns"), "status", "ready"},
-			want:       " pod=\"kubedns\" status=\"ready\"",
-		},
-		{
-			keysValues: []interface{}{"pod", KObj(kMetadataMock{"test-name", "test-ns"}), "status", "ready"},
-			want:       " pod=\"test-ns/test-name\" status=\"ready\"",
-		},
-		{
-			keysValues: []interface{}{"pod", KObj(kMetadataMock{"test-name", ""}), "status", "ready"},
-			want:       " pod=\"test-name\" status=\"ready\"",
-		},
-		{
-			keysValues: []interface{}{"pod", KObj(nil), "status", "ready"},
-			want:       " pod=\"\" status=\"ready\"",
-		},
-		{
-			keysValues: []interface{}{"pod", KObj((*ptrKMetadataMock)(nil)), "status", "ready"},
-			want:       " pod=\"\" status=\"ready\"",
-		},
-		{
-			keysValues: []interface{}{"pod", KObj((*kMetadataMock)(nil)), "status", "ready"},
-			want:       " pod=\"\" status=\"ready\"",
-		},
-	}
-
-	for _, d := range testKVList {
-		b := &bytes.Buffer{}
-		kvListFormat(b, d.keysValues...)
-		if b.String() != d.want {
-			t.Errorf("kvlist format error:\n got:\n\t%s\nwant:\t%s", b.String(), d.want)
 		}
 	}
 }
@@ -1775,13 +1674,13 @@ func TestKObjs(t *testing.T) {
 	}{
 		{
 			name: "test for KObjs function with KMetadata slice",
-			obj: []kMetadataMock{
+			obj: []test.KMetadataMock{
 				{
-					name: "kube-dns",
-					ns:   "kube-system",
+					Name: "kube-dns",
+					NS:   "kube-system",
 				},
 				{
-					name: "mi-conf",
+					Name: "mi-conf",
 				},
 				{},
 			},
@@ -1798,13 +1697,13 @@ func TestKObjs(t *testing.T) {
 		},
 		{
 			name: "test for KObjs function with KMetadata pointer slice",
-			obj: []*kMetadataMock{
+			obj: []*test.KMetadataMock{
 				{
-					name: "kube-dns",
-					ns:   "kube-system",
+					Name: "kube-dns",
+					NS:   "kube-system",
 				},
 				{
-					name: "mi-conf",
+					Name: "mi-conf",
 				},
 				nil,
 			},
