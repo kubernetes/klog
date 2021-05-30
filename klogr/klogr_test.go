@@ -110,6 +110,7 @@ func testOutput(t *testing.T, format string) {
 `,
 		},
 		"should correctly handle odd-numbers of KVs": {
+			klogr:         new(),
 			text:          "test",
 			keysAndValues: []interface{}{"akey", "avalue", "akey2"},
 			expectedOutput: ` "msg"="test"  "akey"="avalue" "akey2"=null
@@ -118,6 +119,7 @@ func testOutput(t *testing.T, format string) {
 `,
 		},
 		"should correctly html characters": {
+			klogr:         new(),
 			text:          "test",
 			keysAndValues: []interface{}{"akey", "<&>"},
 			expectedOutput: ` "msg"="test"  "akey"="<&>"
@@ -169,19 +171,15 @@ func testOutput(t *testing.T, format string) {
 	}
 	for n, test := range tests {
 		t.Run(n, func(t *testing.T) {
-			klogr := test.klogr
-			if klogr == nil {
-				klogr = new()
-			}
 
 			// hijack the klog output
 			tmpWriteBuffer := bytes.NewBuffer(nil)
 			klog.SetOutput(tmpWriteBuffer)
 
 			if test.err != nil {
-				klogr.Error(test.err, test.text, test.keysAndValues...)
+				test.klogr.Error(test.err, test.text, test.keysAndValues...)
 			} else {
-				klogr.Info(test.text, test.keysAndValues...)
+				test.klogr.Info(test.text, test.keysAndValues...)
 			}
 
 			// call Flush to ensure the text isn't still buffered
