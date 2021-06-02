@@ -58,7 +58,7 @@ func NewWithOptions(options ...Option) logr.Logger {
 	for _, option := range options {
 		option(&l)
 	}
-	return logr.New(l)
+	return logr.New(&l)
 }
 
 type klogger struct {
@@ -69,7 +69,7 @@ type klogger struct {
 	format    Format
 }
 
-func (l klogger) Init(info logr.RuntimeInfo) {
+func (l *klogger) Init(info logr.RuntimeInfo) {
 	l.callDepth += info.CallDepth
 }
 
@@ -263,19 +263,19 @@ func (l klogger) WithName(name string) logr.LogSink {
 		new.prefix = l.prefix + "/"
 	}
 	new.prefix += name
-	return new
+	return &new
 }
 
 func (l klogger) WithValues(kvList ...interface{}) logr.LogSink {
 	new := l.clone()
 	new.values = append(new.values, kvList...)
-	return new
+	return &new
 }
 
 func (l klogger) WithCallDepth(depth int) logr.LogSink {
 	new := l.clone()
 	new.callDepth += depth
-	return new
+	return &new
 }
 
 var _ logr.LogSink = &klogger{}
