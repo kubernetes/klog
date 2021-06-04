@@ -862,11 +862,18 @@ func (rb *redirectBuffer) Write(bytes []byte) (n int, err error) {
 // Use as:
 //   ...
 //   klog.SetLogger(zapr.NewLogger(zapLog))
-func SetLogger(logr *logr.Logger) {
+func SetLogger(logr logr.Logger) {
 	logging.mu.Lock()
 	defer logging.mu.Unlock()
 
-	logging.logr = logr
+	logging.logr = &logr
+}
+
+func clearLogger() {
+	logging.mu.Lock()
+	defer logging.mu.Unlock()
+
+	logging.logr = nil
 }
 
 // SetOutput sets the output destination for all severities
