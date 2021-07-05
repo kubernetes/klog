@@ -1724,19 +1724,20 @@ func checkLogrEntryCorrectCaller(t *testing.T, wantFile string, wantLine int, en
 
 // existedFlag contains all existed flag, without KlogPrefix
 var existedFlag = map[string]struct{}{
-	"log_dir":           {},
-	"add_dir_header":    {},
-	"alsologtostderr":   {},
-	"log_backtrace_at":  {},
-	"log_file":          {},
-	"log_file_max_size": {},
-	"logtostderr":       {},
-	"one_output":        {},
-	"skip_headers":      {},
-	"skip_log_headers":  {},
-	"stderrthreshold":   {},
-	"v":                 {},
-	"vmodule":           {},
+	"log_dir":                  {},
+	"add_dir_header":           {},
+	"alsologtostderr":          {},
+	"alsologtostderrthreshold": {},
+	"log_backtrace_at":         {},
+	"log_file":                 {},
+	"log_file_max_size":        {},
+	"logtostderr":              {},
+	"one_output":               {},
+	"skip_headers":             {},
+	"skip_log_headers":         {},
+	"stderrthreshold":          {},
+	"v":                        {},
+	"vmodule":                  {},
 }
 
 // KlogPrefix define new flag prefix
