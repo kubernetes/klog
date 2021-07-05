@@ -90,6 +90,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+
+	"k8s.io/klog/v2/internal/serialize"
 )
 
 // severity identifies the sort of log: info, warning etc. It also implements
@@ -807,36 +809,8 @@ func (l *loggingT) printS(err error, s severity, depth int, msg string, keysAndV
 		b.WriteByte(' ')
 		b.WriteString(fmt.Sprintf("err=%q", err.Error()))
 	}
-	kvListFormat(b, keysAndValues...)
+	serialize.KVListFormat(b, keysAndValues...)
 	l.printDepth(s, logging.logr, nil, depth+1, b)
-}
-
-const missingValue = "(MISSING)"
-
-func kvListFormat(b *bytes.Buffer, keysAndValues ...interface{}) {
-	for i := 0; i < len(keysAndValues); i += 2 {
-		var v interface{}
-		k := keysAndValues[i]
-		if i+1 < len(keysAndValues) {
-			v = keysAndValues[i+1]
-		} else {
-			v = missingValue
-		}
-		b.WriteByte(' ')
-
-		switch v.(type) {
-		case string, error:
-			b.WriteString(fmt.Sprintf("%s=%q", k, v))
-		case []byte:
-			b.WriteString(fmt.Sprintf("%s=%+q", k, v))
-		default:
-			if _, ok := v.(fmt.Stringer); ok {
-				b.WriteString(fmt.Sprintf("%s=%q", k, v))
-			} else {
-				b.WriteString(fmt.Sprintf("%s=%+v", k, v))
-			}
-		}
-	}
 }
 
 // redirectBuffer is used to set an alternate destination for the logs
