@@ -446,7 +446,7 @@ func testVmoduleGlob(pat string, match bool, t *testing.T) {
 	defer logging.vmodule.Set("")
 	logging.vmodule.Set(pat)
 	if V(2).Enabled() != match {
-		t.Errorf("incorrect match for %q: got %t expected %t", pat, V(2), match)
+		t.Errorf("incorrect match for %q: got %#v expected %#v", pat, V(2), match)
 	}
 }
 
@@ -1375,8 +1375,9 @@ func TestInfoSWithLogr(t *testing.T) {
 
 	for _, data := range testDataInfo {
 		t.Run(data.msg, func(t *testing.T) {
-			SetLogger(logger)
-			defer SetLogger(nil)
+			l := logr.New(logger)
+			SetLogger(l)
+			defer clearLogger()
 			defer logger.reset()
 
 			InfoS(data.msg, data.keysValues...)
@@ -1442,8 +1443,9 @@ func TestErrorSWithLogr(t *testing.T) {
 
 	for _, data := range testDataInfo {
 		t.Run(data.msg, func(t *testing.T) {
-			SetLogger(logger)
-			defer SetLogger(nil)
+			l := logr.New(logger)
+			SetLogger(l)
+			defer clearLogger()
 			defer logger.reset()
 
 			ErrorS(data.err, data.msg, data.keysValues...)
@@ -1499,8 +1501,9 @@ func TestCallDepthLogr(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			SetLogger(logger)
-			defer SetLogger(nil)
+			l := logr.New(logger)
+			SetLogger(l)
+			defer clearLogger()
 			defer logger.reset()
 			defer logger.resetCallDepth()
 
@@ -1520,7 +1523,8 @@ func TestCallDepthLogr(t *testing.T) {
 func TestCallDepthLogrInfoS(t *testing.T) {
 	logger := &callDepthTestLogr{}
 	logger.resetCallDepth()
-	SetLogger(logger)
+	l := logr.New(logger)
+	SetLogger(l)
 
 	// Add wrapper to ensure callDepthTestLogr +2 offset is correct.
 	logFunc := func() {
@@ -1541,7 +1545,8 @@ func TestCallDepthLogrInfoS(t *testing.T) {
 func TestCallDepthLogrErrorS(t *testing.T) {
 	logger := &callDepthTestLogr{}
 	logger.resetCallDepth()
-	SetLogger(logger)
+	l := logr.New(logger)
+	SetLogger(l)
 
 	// Add wrapper to ensure callDepthTestLogr +2 offset is correct.
 	logFunc := func() {
@@ -1562,7 +1567,8 @@ func TestCallDepthLogrErrorS(t *testing.T) {
 func TestCallDepthLogrGoLog(t *testing.T) {
 	logger := &callDepthTestLogr{}
 	logger.resetCallDepth()
-	SetLogger(logger)
+	l := logr.New(logger)
+	SetLogger(l)
 	CopyStandardLogTo("INFO")
 
 	// Add wrapper to ensure callDepthTestLogr +2 offset is correct.
@@ -1588,7 +1594,7 @@ func TestCallDepthTestLogr(t *testing.T) {
 	logger.resetCallDepth()
 
 	logFunc := func() {
-		logger.Info("some info log")
+		logger.Info(0, "some info log")
 	}
 	// Keep these lines together.
 	_, wantFile, wantLine, _ := runtime.Caller(0)
@@ -1634,7 +1640,7 @@ func (l *testLogr) reset() {
 	l.entries = []testLogrEntry{}
 }
 
-func (l *testLogr) Info(msg string, keysAndValues ...interface{}) {
+func (l *testLogr) Info(level int, msg string, keysAndValues ...interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.entries = append(l.entries, testLogrEntry{
@@ -1655,12 +1661,15 @@ func (l *testLogr) Error(err error, msg string, keysAndValues ...interface{}) {
 	})
 }
 
-func (l *testLogr) Enabled() bool               { panic("not implemented") }
-func (l *testLogr) V(int) logr.Logger           { panic("not implemented") }
-func (l *testLogr) WithName(string) logr.Logger { panic("not implemented") }
-func (l *testLogr) WithValues(...interface{}) logr.Logger {
-	panic("not implemented")
-}
+func (l *testLogr) Init(info logr.RuntimeInfo)             {}
+func (l *testLogr) Enabled(level int) bool                 { return true }
+func (l *testLogr) V(int) logr.Logger                      { panic("not implemented") }
+func (l *testLogr) WithName(string) logr.LogSink           { panic("not implemented") }
+func (l *testLogr) WithValues(...interface{}) logr.LogSink { panic("not implemented") }
+func (l *testLogr) WithCallDepth(depth int) logr.LogSink   { return l }
+
+var _ logr.LogSink = &testLogr{}
+var _ logr.CallDepthLogSink = &testLogr{}
 
 type callDepthTestLogr struct {
 	testLogr
@@ -1673,17 +1682,17 @@ func (l *callDepthTestLogr) resetCallDepth() {
 	l.callDepth = 0
 }
 
-func (l *callDepthTestLogr) WithCallDepth(depth int) logr.Logger {
+func (l *callDepthTestLogr) WithCallDepth(depth int) logr.LogSink {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	// Note: Usually WithCallDepth would be implemented by cloning l
 	// and setting the call depth on the clone. We modify l instead in
 	// this test helper for simplicity.
-	l.callDepth = depth
+	l.callDepth = depth + 1
 	return l
 }
 
-func (l *callDepthTestLogr) Info(msg string, keysAndValues ...interface{}) {
+func (l *callDepthTestLogr) Info(level int, msg string, keysAndValues ...interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	// Add 2 to depth for the wrapper function caller and for invocation in
@@ -1709,6 +1718,9 @@ func (l *callDepthTestLogr) Error(err error, msg string, keysAndValues ...interf
 		err:           err,
 	})
 }
+
+var _ logr.LogSink = &callDepthTestLogr{}
+var _ logr.CallDepthLogSink = &callDepthTestLogr{}
 
 func checkLogrEntryCorrectCaller(t *testing.T, wantFile string, wantLine int, entry testLogrEntry) {
 	t.Helper()
