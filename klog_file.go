@@ -21,6 +21,7 @@ package klog
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -116,6 +117,18 @@ func logName(tag string, t time.Time) (name, link string) {
 	return name, program + "." + tag
 }
 
+func rotateLogName(logFile string, index uint64, t time.Time) string {
+	return fmt.Sprintf("%s.%04d%02d%02d-%02d%02d%02d.%d",
+		logFile,
+		t.Year(),
+		t.Month(),
+		t.Day(),
+		t.Hour(),
+		t.Minute(),
+		t.Second(),
+		index)
+}
+
 var onceLogDirs sync.Once
 
 // create creates a new log file and returns the file and its filename, which
@@ -126,6 +139,17 @@ var onceLogDirs sync.Once
 // If startup is true, existing files are opened for appending instead of truncated.
 func create(tag string, t time.Time, startup bool) (f *os.File, filename string, err error) {
 	if logging.logFile != "" {
+		fi, err := os.Stat(logging.logFile)
+		if (err == nil || os.IsExist(err)) && fi.Size() >= int64(CalculateMaxSize()) {
+			err = os.Rename(logging.logFile, rotateLogName(logging.logFile, logging.logFileIndex, t))
+			if err != nil {
+				return nil, "", fmt.Errorf("log: cannot rotate log: %v", err)
+			}
+			logging.logFileIndex++
+		}
+		if err = cleanLogFiles(logging.logFile, logging.logFileMaxBackups); err != nil {
+			return nil, "", fmt.Errorf("log: cannot clean log: %v", err)
+		}
 		f, err := openOrCreate(logging.logFile, startup)
 		if err == nil {
 			return f, logging.logFile, nil
@@ -161,4 +185,30 @@ func openOrCreate(name string, startup bool) (*os.File, error) {
 	}
 	f, err := os.Create(name)
 	return f, err
+}
+
+func cleanLogFiles(logFile string, keepBackups int) error {
+	dir, err := filepath.Abs(filepath.Dir(logFile))
+	if err != nil {
+		return err
+	}
+	fileInfos, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	logFileName := logFile[strings.LastIndexByte(logFile, filepath.Separator)+1:]
+	allLogFiles := make([]string, 0)
+	for _, fi := range fileInfos {
+		name := fi.Name()
+		if strings.HasPrefix(name, logFileName) && name != logFileName {
+			allLogFiles = append(allLogFiles, name)
+		}
+	}
+	if len(allLogFiles) > keepBackups {
+		numFilesToClean := len(allLogFiles) - keepBackups
+		for i := 0; i < numFilesToClean; i++ {
+			os.Remove(filepath.Join(dir, allLogFiles[i]))
+		}
+	}
+	return nil
 }
