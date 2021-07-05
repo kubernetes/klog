@@ -417,6 +417,7 @@ func init() {
 	logging.addDirHeader = false
 	logging.skipLogHeaders = false
 	logging.oneOutput = false
+	logging.stackTrace = true
 	go logging.flushDaemon()
 }
 
@@ -433,6 +434,7 @@ func InitFlags(flagset *flag.FlagSet) {
 			"If the value is 0, the maximum file size is unlimited.")
 	flagset.BoolVar(&logging.toStderr, "logtostderr", logging.toStderr, "log to standard error instead of files")
 	flagset.BoolVar(&logging.alsoToStderr, "alsologtostderr", logging.alsoToStderr, "log to standard error as well as files")
+	flagset.BoolVar(&logging.stackTrace, "stacktrace", logging.stackTrace, "log to display the stack trace")
 	flagset.Var(&logging.verbosity, "v", "number for the log level verbosity")
 	flagset.BoolVar(&logging.addDirHeader, "add_dir_header", logging.addDirHeader, "If true, adds the file directory to the header of the log messages")
 	flagset.BoolVar(&logging.skipHeaders, "skip_headers", logging.skipHeaders, "If true, avoid header prefixes in the log messages")
@@ -458,6 +460,9 @@ type loggingT struct {
 
 	// Level flag. Handled atomically.
 	stderrThreshold severity // The -stderrthreshold flag.
+
+	// stackTrace sets whether to display the stack trace.
+	stackTrace bool
 
 	// freeList is a list of byte buffers, maintained under freeListMu.
 	freeList *buffer
@@ -974,7 +979,7 @@ func (l *loggingT) output(s severity, log logr.Logger, buf *buffer, depth int, f
 		// Dump all goroutine stacks before exiting.
 		trace := stacks(true)
 		// Write the stack trace for all goroutines to the stderr.
-		if l.toStderr || l.alsoToStderr || s >= l.stderrThreshold.get() || alsoToStderr {
+		if l.stackTrace {
 			os.Stderr.Write(trace)
 		}
 		// Write the stack trace for all goroutines to the files.

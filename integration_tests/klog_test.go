@@ -98,7 +98,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 		"everything disabled": {
 			// Nothing, including the trace on fatal, is showing anywhere
 
-			flags: []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags: []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-stacktrace=false"},
 
 			notExpectedOnStderr: allLogREs,
 		},
@@ -122,7 +122,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything, including the trace on fatal, goes to the single log file
 
 			logfile: true,
-			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-stacktrace=false"},
 
 			expectedLogFile: true,
 
@@ -133,7 +133,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything, including the trace on fatal, goes to the log files in the log dir
 
 			logdir: true,
-			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-stacktrace=false"},
 
 			expectedLogDir: true,
 
@@ -145,7 +145,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 			// Everything, including the trace on fatal, goes to the log files in the log dir
 
 			logdir: true,
-			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-one_output=true"},
+			flags:  []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-one_output=true", "-stacktrace=false"},
 
 			expectedLogDir: true,
 
@@ -168,7 +168,7 @@ func TestDestinationsWithDifferentFlags(t *testing.T) {
 
 			logdir:  true,
 			logfile: true,
-			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000"},
+			flags:   []string{"-logtostderr=false", "-alsologtostderr=false", "-stderrthreshold=1000", "-stacktrace=false"},
 
 			expectedLogFile: true,
 
