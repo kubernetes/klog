@@ -1315,9 +1315,14 @@ func V(level Level) Verbose {
 		if runtime.Callers(2, logging.pcs[:]) == 0 {
 			return newVerbose(level, false)
 		}
-		v, ok := logging.vmap[logging.pcs[0]]
+		// runtime.Callers returns "return PCs", but we want
+		// to look up the symbolic information for the call,
+		// so subtract 1 from the PC. runtime.CallersFrames
+		// would be cleaner, but allocates.
+		pc := logging.pcs[0] - 1
+		v, ok := logging.vmap[pc]
 		if !ok {
-			v = logging.setV(logging.pcs[0])
+			v = logging.setV(pc)
 		}
 		return newVerbose(level, v >= level)
 	}
