@@ -157,9 +157,9 @@ func testOutput(t *testing.T, format string) {
 			text:  "test",
 			err:   errors.New("whoops"),
 			// The message is printed to three different log files (info, warning, error), so we see it three times in our output buffer.
-			expectedOutput: ` "msg"="test" "error"="whoops"  
- "msg"="test" "error"="whoops"  
- "msg"="test" "error"="whoops"  
+			expectedOutput: ` "msg"="test" "error"="whoops" "errorVerbose"="whoops"  
+ "msg"="test" "error"="whoops" "errorVerbose"="whoops"  
+ "msg"="test" "error"="whoops" "errorVerbose"="whoops"  
 `,
 			expectedKlogOutput: `"test" err="whoops"
 "test" err="whoops"
