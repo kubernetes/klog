@@ -698,11 +698,11 @@ func (buf *buffer) someDigits(i, d int) int {
 	return copy(buf.tmp[i:], buf.tmp[j:])
 }
 
-func (l *loggingT) println(s severity, logr logr.Logger, filter LogFilter, args ...interface{}) {
+func (l *loggingT) println(s severity, loggr logr.Logger, filter LogFilter, args ...interface{}) {
 	buf, file, line := l.header(s, 0)
 	// if logr is set, we clear the generated header as we rely on the backing
 	// logr implementation to print headers
-	if logr != nil {
+	if loggr != nil {
 		l.putBuffer(buf)
 		buf = l.getBuffer()
 	}
@@ -710,18 +710,18 @@ func (l *loggingT) println(s severity, logr logr.Logger, filter LogFilter, args 
 		args = filter.Filter(args)
 	}
 	fmt.Fprintln(buf, args...)
-	l.output(s, logr, buf, 0 /* depth */, file, line, false)
+	l.output(s, loggr, buf, 0 /* depth */, file, line, false)
 }
 
-func (l *loggingT) print(s severity, logr logr.Logger, filter LogFilter, args ...interface{}) {
-	l.printDepth(s, logr, filter, 1, args...)
+func (l *loggingT) print(s severity, loggr logr.Logger, filter LogFilter, args ...interface{}) {
+	l.printDepth(s, loggr, filter, 1, args...)
 }
 
-func (l *loggingT) printDepth(s severity, logr logr.Logger, filter LogFilter, depth int, args ...interface{}) {
+func (l *loggingT) printDepth(s severity, loggr logr.Logger, filter LogFilter, depth int, args ...interface{}) {
 	buf, file, line := l.header(s, depth)
 	// if logr is set, we clear the generated header as we rely on the backing
 	// logr implementation to print headers
-	if logr != nil {
+	if loggr != nil {
 		l.putBuffer(buf)
 		buf = l.getBuffer()
 	}
@@ -732,14 +732,14 @@ func (l *loggingT) printDepth(s severity, logr logr.Logger, filter LogFilter, de
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
-	l.output(s, logr, buf, depth, file, line, false)
+	l.output(s, loggr, buf, depth, file, line, false)
 }
 
-func (l *loggingT) printf(s severity, logr logr.Logger, filter LogFilter, format string, args ...interface{}) {
+func (l *loggingT) printf(s severity, loggr logr.Logger, filter LogFilter, format string, args ...interface{}) {
 	buf, file, line := l.header(s, 0)
 	// if logr is set, we clear the generated header as we rely on the backing
 	// logr implementation to print headers
-	if logr != nil {
+	if loggr != nil {
 		l.putBuffer(buf)
 		buf = l.getBuffer()
 	}
@@ -750,17 +750,17 @@ func (l *loggingT) printf(s severity, logr logr.Logger, filter LogFilter, format
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
-	l.output(s, logr, buf, 0 /* depth */, file, line, false)
+	l.output(s, loggr, buf, 0 /* depth */, file, line, false)
 }
 
 // printWithFileLine behaves like print but uses the provided file and line number.  If
 // alsoLogToStderr is true, the log message always appears on standard error; it
 // will also appear in the log file unless --logtostderr is set.
-func (l *loggingT) printWithFileLine(s severity, logr logr.Logger, filter LogFilter, file string, line int, alsoToStderr bool, args ...interface{}) {
+func (l *loggingT) printWithFileLine(s severity, loggr logr.Logger, filter LogFilter, file string, line int, alsoToStderr bool, args ...interface{}) {
 	buf := l.formatHeader(s, file, line)
 	// if logr is set, we clear the generated header as we rely on the backing
 	// logr implementation to print headers
-	if logr != nil {
+	if loggr != nil {
 		l.putBuffer(buf)
 		buf = l.getBuffer()
 	}
@@ -771,7 +771,7 @@ func (l *loggingT) printWithFileLine(s severity, logr logr.Logger, filter LogFil
 	if buf.Bytes()[buf.Len()-1] != '\n' {
 		buf.WriteByte('\n')
 	}
-	l.output(s, logr, buf, 2 /* depth */, file, line, alsoToStderr)
+	l.output(s, loggr, buf, 2 /* depth */, file, line, alsoToStderr)
 }
 
 // if loggr is specified, will call loggr.Error, otherwise output with logging module.
