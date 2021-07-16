@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"k8s.io/klog/v2"
 )
 
@@ -40,14 +39,14 @@ func WithFormat(format Format) Option {
 
 // New returns a logr.Logger which serializes output itself
 // and writes it via klog.
-func New() logr.Logger {
+func New() klog.Logger {
 	return NewWithOptions(WithFormat(FormatSerialize))
 }
 
-// NewWithOptions returns a logr.Logger which serializes as determined
+// NewWithOptions returns a Logger which serializes as determined
 // by the WithFormat option and writes via klog. The default is
 // FormatKlog.
-func NewWithOptions(options ...Option) logr.Logger {
+func NewWithOptions(options ...Option) klog.Logger {
 	l := klogger{
 		level:  0,
 		prefix: "",
@@ -236,16 +235,16 @@ func (l klogger) Error(err error, msg string, kvList ...interface{}) {
 	}
 }
 
-func (l klogger) V(level int) logr.Logger {
+func (l klogger) V(level int) klog.Logger {
 	new := l.clone()
 	new.level = level
 	return new
 }
 
-// WithName returns a new logr.Logger with the specified name appended.  klogr
+// WithName returns a new klog.Logger with the specified name appended.  klogr
 // uses '/' characters to separate name elements.  Callers should not pass '/'
 // in the provided name string, but this library does not actually enforce that.
-func (l klogger) WithName(name string) logr.Logger {
+func (l klogger) WithName(name string) klog.Logger {
 	new := l.clone()
 	if len(l.prefix) > 0 {
 		new.prefix = l.prefix + "/"
@@ -254,17 +253,17 @@ func (l klogger) WithName(name string) logr.Logger {
 	return new
 }
 
-func (l klogger) WithValues(kvList ...interface{}) logr.Logger {
+func (l klogger) WithValues(kvList ...interface{}) klog.Logger {
 	new := l.clone()
 	new.values = append(new.values, kvList...)
 	return new
 }
 
-func (l klogger) WithCallDepth(depth int) logr.Logger {
+func (l klogger) WithCallDepth(depth int) klog.Logger {
 	new := l.clone()
 	new.callDepth += depth
 	return new
 }
 
-var _ logr.Logger = klogger{}
-var _ logr.CallDepthLogger = klogger{}
+var _ klog.Logger = klogger{}
+var _ klog.CallDepthLogger = klogger{}
