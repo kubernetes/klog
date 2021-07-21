@@ -33,8 +33,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/go-logr/logr"
 )
 
 // TODO: This test package should be refactored so that tests cannot
@@ -1655,10 +1653,10 @@ func (l *testLogr) Error(err error, msg string, keysAndValues ...interface{}) {
 	})
 }
 
-func (l *testLogr) Enabled() bool               { panic("not implemented") }
-func (l *testLogr) V(int) logr.Logger           { panic("not implemented") }
-func (l *testLogr) WithName(string) logr.Logger { panic("not implemented") }
-func (l *testLogr) WithValues(...interface{}) logr.Logger {
+func (l *testLogr) Enabled() bool          { panic("not implemented") }
+func (l *testLogr) V(int) Logger           { panic("not implemented") }
+func (l *testLogr) WithName(string) Logger { panic("not implemented") }
+func (l *testLogr) WithValues(...interface{}) Logger {
 	panic("not implemented")
 }
 
@@ -1673,7 +1671,7 @@ func (l *callDepthTestLogr) resetCallDepth() {
 	l.callDepth = 0
 }
 
-func (l *callDepthTestLogr) WithCallDepth(depth int) logr.Logger {
+func (l *callDepthTestLogr) WithCallDepth(depth int) Logger {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	// Note: Usually WithCallDepth would be implemented by cloning l

@@ -9,8 +9,6 @@ import (
 	"testing"
 
 	"k8s.io/klog/v2"
-
-	"github.com/go-logr/logr"
 )
 
 const (
@@ -19,7 +17,7 @@ const (
 )
 
 func testOutput(t *testing.T, format string) {
-	new := func() logr.Logger {
+	new := func() klog.Logger {
 		switch format {
 		case formatNew:
 			return New()
@@ -30,7 +28,7 @@ func testOutput(t *testing.T, format string) {
 		}
 	}
 	tests := map[string]struct {
-		klogr              logr.Logger
+		klogr              klog.Logger
 		text               string
 		keysAndValues      []interface{}
 		err                error
@@ -152,7 +150,7 @@ func testOutput(t *testing.T, format string) {
 			expectedKlogOutput: `"test" err="whoops"
 `,
 		},
-		"should correctly print regular error types when using logr.Error": {
+		"should correctly print regular error types when using klog.Error": {
 			klogr: new().V(0),
 			text:  "test",
 			err:   errors.New("whoops"),
