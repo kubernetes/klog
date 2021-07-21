@@ -1,6 +1,6 @@
 package klog
 
-// clone from github.com/go-logr/logr v0.4.0
+// copy from github.com/go-logr/logr v0.4.0
 type Logger interface {
 	// Enabled tests whether this Logger is enabled.  For example, commandline
 	// flags might be used to set the logging verbosity and disable some info
