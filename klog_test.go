@@ -96,6 +96,7 @@ func contains(s severity, str string, t *testing.T) bool {
 func setFlags() {
 	logging.toStderr = false
 	logging.addDirHeader = false
+	logging.stackTrace = true
 }
 
 // Test that Info works as advertised.
@@ -1508,6 +1509,7 @@ var existedFlag = map[string]struct{}{
 	"stderrthreshold":   {},
 	"v":                 {},
 	"vmodule":           {},
+	"stacktrace":        {},
 }
 
 // KlogPrefix define new flag prefix
