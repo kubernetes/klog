@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -27,25 +29,10 @@ func (k kmeta) GetNamespace() string {
 
 var _ klog.KMetadata = kmeta{}
 
-var obj = kmeta{name: "some-fake-name", namespace: "kube-system"}
+// var obj = kmeta{name: "some-fake-name", namespace: "kube-system"}
+var obj = v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "some-fake-name", Namespace: "kube-system"}}
 
 var result string
-
-func BenchmarkKObjByValue(b *testing.B) {
-	var s string
-	for n := 0; n < b.N; n++ {
-		s = klog.KObj(obj).String()
-	}
-	result = s
-}
-
-func BenchmarkKObj2ByValue(b *testing.B) {
-	var s string
-	for n := 0; n < b.N; n++ {
-		s = klog.KObj2(obj).String()
-	}
-	result = s
-}
 
 func BenchmarkKObjByPointer(b *testing.B) {
 	var s string
@@ -63,18 +50,6 @@ func BenchmarkKObj2ByPointer(b *testing.B) {
 	result = s
 }
 
-func BenchmarkSkipObjByValue(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		klog.V(10).InfoS("skipped", "obj", klog.KObj(obj))
-	}
-}
-
-func BenchmarkSkipObj2ByValue(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		klog.V(10).InfoS("skipped", "obj", klog.KObj2(obj))
-	}
-}
-
 func BenchmarkSkipObjByPointer(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		klog.V(10).InfoS("skipped", "obj", klog.KObj(&obj))
@@ -84,20 +59,6 @@ func BenchmarkSkipObjByPointer(b *testing.B) {
 func BenchmarkSkipObj2ByPointer(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		klog.V(10).InfoS("skipped", "obj", klog.KObj2(&obj))
-	}
-}
-
-func BenchmarkDiscardObjByValue(b *testing.B) {
-	log := logr.Discard()
-	for n := 0; n < b.N; n++ {
-		log.Info("skipped", klog.KObj(obj))
-	}
-}
-
-func BenchmarkDiscardObj2ByValue(b *testing.B) {
-	log := logr.Discard()
-	for n := 0; n < b.N; n++ {
-		log.Info("skipped", klog.KObj2(obj))
 	}
 }
 
