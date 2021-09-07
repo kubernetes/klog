@@ -1638,3 +1638,21 @@ func KObjs(arg interface{}) []ObjectRef {
 	}
 	return objectRefs
 }
+
+func KObj2(obj KMetadata) ObjectRef2 {
+	return ObjectRef2{KMetadata: obj}
+}
+
+type ObjectRef2 struct {
+	KMetadata
+}
+
+func (o ObjectRef2) String() string {
+	namespace := o.GetNamespace()
+	if namespace != "" {
+		return fmt.Sprintf("%s/%s", namespace, o.GetName())
+	}
+	return o.GetName()
+}
+
+var _ fmt.Stringer = ObjectRef2{}
