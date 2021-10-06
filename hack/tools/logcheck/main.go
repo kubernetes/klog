@@ -21,11 +21,13 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"os"
 	"strings"
 
 	"golang.org/x/exp/utf8string"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/singlechecker"
+	"golang.org/x/tools/go/packages"
 )
 
 type config struct {
@@ -34,6 +36,24 @@ type config struct {
 }
 
 func main() {
+	pkgs, _ := packages.Load(nil, os.Args[1:]...)
+	// count of "no Go files" errors
+	goFileErrorsCount := 0
+	packages.Visit(pkgs, nil, func(pkg *packages.Package) {
+
+		for _, err := range pkg.Errors {
+			fmt.Fprintln(os.Stderr, err)
+			if strings.Contains(err.Msg, "no Go files") {
+				goFileErrorsCount++
+				continue
+			}
+			os.Exit(1)
+		}
+	})
+
+	if goFileErrorsCount > 0 { // if there are "no Go files" errors, don't exec analyzer
+		return
+	}
 	singlechecker.Main(analyser())
 }
 
