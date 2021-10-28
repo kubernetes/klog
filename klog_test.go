@@ -446,7 +446,7 @@ func testVmoduleGlob(pat string, match bool, t *testing.T) {
 	defer logging.vmodule.Set("")
 	logging.vmodule.Set(pat)
 	if V(2).Enabled() != match {
-		t.Errorf("incorrect match for %q: got %t expected %t", pat, V(2), match)
+		t.Errorf("incorrect match for %q: got %#v expected %#v", pat, V(2), match)
 	}
 }
 
@@ -621,13 +621,33 @@ func BenchmarkHeaderWithDir(b *testing.B) {
 	}
 }
 
+// Ensure that benchmarks have side effects to avoid compiler optimization
+var result ObjectRef
+
+func BenchmarkKRef(b *testing.B) {
+	var r ObjectRef
+	for i := 0; i < b.N; i++ {
+		r = KRef("namespace", "name")
+	}
+	result = r
+}
+
+func BenchmarkKObj(b *testing.B) {
+	a := kMetadataMock{name: "a", ns: "a"}
+	var r ObjectRef
+	for i := 0; i < b.N; i++ {
+		r = KObj(&a)
+	}
+	result = r
+}
+
 func BenchmarkLogs(b *testing.B) {
 	setFlags()
 	defer logging.swap(logging.newBuffers())
 
 	testFile, err := ioutil.TempFile("", "test.log")
 	if err != nil {
-		b.Error("unable to create temporary file")
+		b.Fatal("unable to create temporary file")
 	}
 	defer os.Remove(testFile.Name())
 
@@ -734,6 +754,11 @@ func TestInfoObjectRef(t *testing.T) {
 			},
 			want: "test-name",
 		},
+		{
+			name: "empty",
+			ref:  ObjectRef{},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -746,14 +771,25 @@ func TestInfoObjectRef(t *testing.T) {
 	}
 }
 
-type mockKmeta struct {
+type kMetadataMock struct {
 	name, ns string
 }
 
-func (m mockKmeta) GetName() string {
+func (m kMetadataMock) GetName() string {
 	return m.name
 }
-func (m mockKmeta) GetNamespace() string {
+func (m kMetadataMock) GetNamespace() string {
+	return m.ns
+}
+
+type ptrKMetadataMock struct {
+	name, ns string
+}
+
+func (m *ptrKMetadataMock) GetName() string {
+	return m.name
+}
+func (m *ptrKMetadataMock) GetNamespace() string {
 	return m.ns
 }
 
@@ -764,8 +800,28 @@ func TestKObj(t *testing.T) {
 		want ObjectRef
 	}{
 		{
+			name: "nil passed as pointer KMetadata implementation",
+			obj:  (*ptrKMetadataMock)(nil),
+			want: ObjectRef{},
+		},
+		{
+			name: "empty struct passed as non-pointer KMetadata implementation",
+			obj:  kMetadataMock{},
+			want: ObjectRef{},
+		},
+		{
+			name: "nil pointer passed to non-pointer KMetadata implementation",
+			obj:  (*kMetadataMock)(nil),
+			want: ObjectRef{},
+		},
+		{
+			name: "nil",
+			obj:  nil,
+			want: ObjectRef{},
+		},
+		{
 			name: "with ns",
-			obj:  mockKmeta{"test-name", "test-ns"},
+			obj:  &kMetadataMock{"test-name", "test-ns"},
 			want: ObjectRef{
 				Name:      "test-name",
 				Namespace: "test-ns",
@@ -773,7 +829,7 @@ func TestKObj(t *testing.T) {
 		},
 		{
 			name: "without ns",
-			obj:  mockKmeta{"test-name", ""},
+			obj:  &kMetadataMock{"test-name", ""},
 			want: ObjectRef{
 				Name: "test-name",
 			},
@@ -952,17 +1008,31 @@ func TestErrorS(t *testing.T) {
 		myErrorS,
 	}
 	for _, f := range functions {
-		logging.file[errorLog] = &flushBuffer{}
-		f(fmt.Errorf("update status failed"), "Failed to update pod status", "pod", "kubedns")
-		var line int
-		format := "E0102 15:04:05.067890    1234 klog_test.go:%d] \"Failed to update pod status\" err=\"update status failed\" pod=\"kubedns\"\n"
-		n, err := fmt.Sscanf(contents(errorLog), format, &line)
-		if n != 1 || err != nil {
-			t.Errorf("log format error: %d elements, error %s:\n%s", n, err, contents(errorLog))
+		var errorList = []struct {
+			err    error
+			format string
+		}{
+			{
+				err:    fmt.Errorf("update status failed"),
+				format: "E0102 15:04:05.067890    1234 klog_test.go:%d] \"Failed to update pod status\" err=\"update status failed\" pod=\"kubedns\"\n",
+			},
+			{
+				err:    nil,
+				format: "E0102 15:04:05.067890    1234 klog_test.go:%d] \"Failed to update pod status\" pod=\"kubedns\"\n",
+			},
 		}
-		want := fmt.Sprintf(format, line)
-		if contents(errorLog) != want {
-			t.Errorf("ErrorS has wrong format: \n got:\t%s\nwant:\t%s", contents(errorLog), want)
+		for _, e := range errorList {
+			logging.file[errorLog] = &flushBuffer{}
+			f(e.err, "Failed to update pod status", "pod", "kubedns")
+			var line int
+			n, err := fmt.Sscanf(contents(errorLog), e.format, &line)
+			if n != 1 || err != nil {
+				t.Errorf("log format error: %d elements, error %s:\n%s", n, err, contents(errorLog))
+			}
+			want := fmt.Sprintf(e.format, line)
+			if contents(errorLog) != want {
+				t.Errorf("ErrorS has wrong format: \n got:\t%s\nwant:\t%s", contents(errorLog), want)
+			}
 		}
 	}
 }
@@ -998,6 +1068,14 @@ func TestKvListFormat(t *testing.T) {
 			want:       " pod=\"kubedns\" values=[deployment svc configmap]",
 		},
 		{
+			keysValues: []interface{}{"pod", "kubedns", "bytes", []byte("test case for byte array")},
+			want:       " pod=\"kubedns\" bytes=\"test case for byte array\"",
+		},
+		{
+			keysValues: []interface{}{"pod", "kubedns", "bytes", []byte("��=� ⌘")},
+			want:       " pod=\"kubedns\" bytes=\"\\ufffd\\ufffd=\\ufffd \\u2318\"",
+		},
+		{
 			keysValues: []interface{}{"pod", "kubedns", "maps", map[string]int{"three": 4}},
 			want:       " pod=\"kubedns\" maps=map[three:4]",
 		},
@@ -1010,12 +1088,24 @@ func TestKvListFormat(t *testing.T) {
 			want:       " pod=\"kubedns\" status=\"ready\"",
 		},
 		{
-			keysValues: []interface{}{"pod", KObj(mockKmeta{"test-name", "test-ns"}), "status", "ready"},
+			keysValues: []interface{}{"pod", KObj(kMetadataMock{"test-name", "test-ns"}), "status", "ready"},
 			want:       " pod=\"test-ns/test-name\" status=\"ready\"",
 		},
 		{
-			keysValues: []interface{}{"pod", KObj(mockKmeta{"test-name", ""}), "status", "ready"},
+			keysValues: []interface{}{"pod", KObj(kMetadataMock{"test-name", ""}), "status", "ready"},
 			want:       " pod=\"test-name\" status=\"ready\"",
+		},
+		{
+			keysValues: []interface{}{"pod", KObj(nil), "status", "ready"},
+			want:       " pod=\"\" status=\"ready\"",
+		},
+		{
+			keysValues: []interface{}{"pod", KObj((*ptrKMetadataMock)(nil)), "status", "ready"},
+			want:       " pod=\"\" status=\"ready\"",
+		},
+		{
+			keysValues: []interface{}{"pod", KObj((*kMetadataMock)(nil)), "status", "ready"},
+			want:       " pod=\"\" status=\"ready\"",
 		},
 	}
 
@@ -1285,8 +1375,9 @@ func TestInfoSWithLogr(t *testing.T) {
 
 	for _, data := range testDataInfo {
 		t.Run(data.msg, func(t *testing.T) {
-			SetLogger(logger)
-			defer SetLogger(nil)
+			l := logr.New(logger)
+			SetLogger(l)
+			defer ClearLogger()
 			defer logger.reset()
 
 			InfoS(data.msg, data.keysValues...)
@@ -1352,8 +1443,9 @@ func TestErrorSWithLogr(t *testing.T) {
 
 	for _, data := range testDataInfo {
 		t.Run(data.msg, func(t *testing.T) {
-			SetLogger(logger)
-			defer SetLogger(nil)
+			l := logr.New(logger)
+			SetLogger(l)
+			defer ClearLogger()
 			defer logger.reset()
 
 			ErrorS(data.err, data.msg, data.keysValues...)
@@ -1363,6 +1455,171 @@ func TestErrorSWithLogr(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCallDepthLogr(t *testing.T) {
+	logger := &callDepthTestLogr{}
+	logger.resetCallDepth()
+
+	testCases := []struct {
+		name  string
+		logFn func()
+	}{
+		{
+			name:  "Info log",
+			logFn: func() { Info("info log") },
+		},
+		{
+			name:  "InfoDepth log",
+			logFn: func() { InfoDepth(0, "infodepth log") },
+		},
+		{
+			name:  "InfoSDepth log",
+			logFn: func() { InfoSDepth(0, "infoSDepth log") },
+		},
+		{
+			name:  "Warning log",
+			logFn: func() { Warning("warning log") },
+		},
+		{
+			name:  "WarningDepth log",
+			logFn: func() { WarningDepth(0, "warningdepth log") },
+		},
+		{
+			name:  "Error log",
+			logFn: func() { Error("error log") },
+		},
+		{
+			name:  "ErrorDepth log",
+			logFn: func() { ErrorDepth(0, "errordepth log") },
+		},
+		{
+			name:  "ErrorSDepth log",
+			logFn: func() { ErrorSDepth(0, errors.New("some error"), "errorSDepth log") },
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			l := logr.New(logger)
+			SetLogger(l)
+			defer ClearLogger()
+			defer logger.reset()
+			defer logger.resetCallDepth()
+
+			// Keep these lines together.
+			_, wantFile, wantLine, _ := runtime.Caller(0)
+			tc.logFn()
+			wantLine++
+
+			if len(logger.entries) != 1 {
+				t.Errorf("expected a single log entry to be generated, got %d", len(logger.entries))
+			}
+			checkLogrEntryCorrectCaller(t, wantFile, wantLine, logger.entries[0])
+		})
+	}
+}
+
+func TestCallDepthLogrInfoS(t *testing.T) {
+	logger := &callDepthTestLogr{}
+	logger.resetCallDepth()
+	l := logr.New(logger)
+	SetLogger(l)
+
+	// Add wrapper to ensure callDepthTestLogr +2 offset is correct.
+	logFunc := func() {
+		InfoS("infoS log")
+	}
+
+	// Keep these lines together.
+	_, wantFile, wantLine, _ := runtime.Caller(0)
+	logFunc()
+	wantLine++
+
+	if len(logger.entries) != 1 {
+		t.Errorf("expected a single log entry to be generated, got %d", len(logger.entries))
+	}
+	checkLogrEntryCorrectCaller(t, wantFile, wantLine, logger.entries[0])
+}
+
+func TestCallDepthLogrErrorS(t *testing.T) {
+	logger := &callDepthTestLogr{}
+	logger.resetCallDepth()
+	l := logr.New(logger)
+	SetLogger(l)
+
+	// Add wrapper to ensure callDepthTestLogr +2 offset is correct.
+	logFunc := func() {
+		ErrorS(errors.New("some error"), "errorS log")
+	}
+
+	// Keep these lines together.
+	_, wantFile, wantLine, _ := runtime.Caller(0)
+	logFunc()
+	wantLine++
+
+	if len(logger.entries) != 1 {
+		t.Errorf("expected a single log entry to be generated, got %d", len(logger.entries))
+	}
+	checkLogrEntryCorrectCaller(t, wantFile, wantLine, logger.entries[0])
+}
+
+func TestCallDepthLogrGoLog(t *testing.T) {
+	logger := &callDepthTestLogr{}
+	logger.resetCallDepth()
+	l := logr.New(logger)
+	SetLogger(l)
+	CopyStandardLogTo("INFO")
+
+	// Add wrapper to ensure callDepthTestLogr +2 offset is correct.
+	logFunc := func() {
+		stdLog.Print("some log")
+	}
+
+	// Keep these lines together.
+	_, wantFile, wantLine, _ := runtime.Caller(0)
+	logFunc()
+	wantLine++
+
+	if len(logger.entries) != 1 {
+		t.Errorf("expected a single log entry to be generated, got %d", len(logger.entries))
+	}
+	checkLogrEntryCorrectCaller(t, wantFile, wantLine, logger.entries[0])
+	fmt.Println(logger.entries[0])
+}
+
+// Test callDepthTestLogr logs the expected offsets.
+func TestCallDepthTestLogr(t *testing.T) {
+	logger := &callDepthTestLogr{}
+	logger.resetCallDepth()
+
+	logFunc := func() {
+		logger.Info(0, "some info log")
+	}
+	// Keep these lines together.
+	_, wantFile, wantLine, _ := runtime.Caller(0)
+	logFunc()
+	wantLine++
+
+	if len(logger.entries) != 1 {
+		t.Errorf("expected a single log entry to be generated, got %d", len(logger.entries))
+	}
+	checkLogrEntryCorrectCaller(t, wantFile, wantLine, logger.entries[0])
+
+	logger.reset()
+
+	logFunc = func() {
+		logger.Error(errors.New("error"), "some error log")
+	}
+	// Keep these lines together.
+	_, wantFile, wantLine, _ = runtime.Caller(0)
+	logFunc()
+	wantLine++
+
+	if len(logger.entries) != 1 {
+		t.Errorf("expected a single log entry to be generated, got %d", len(logger.entries))
+	}
+	checkLogrEntryCorrectCaller(t, wantFile, wantLine, logger.entries[0])
 }
 
 type testLogr struct {
@@ -1383,7 +1640,7 @@ func (l *testLogr) reset() {
 	l.entries = []testLogrEntry{}
 }
 
-func (l *testLogr) Info(msg string, keysAndValues ...interface{}) {
+func (l *testLogr) Info(level int, msg string, keysAndValues ...interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.entries = append(l.entries, testLogrEntry{
@@ -1404,11 +1661,77 @@ func (l *testLogr) Error(err error, msg string, keysAndValues ...interface{}) {
 	})
 }
 
-func (l *testLogr) Enabled() bool               { panic("not implemented") }
-func (l *testLogr) V(int) logr.Logger           { panic("not implemented") }
-func (l *testLogr) WithName(string) logr.Logger { panic("not implemented") }
-func (l *testLogr) WithValues(...interface{}) logr.Logger {
-	panic("not implemented")
+func (l *testLogr) Init(info logr.RuntimeInfo)             {}
+func (l *testLogr) Enabled(level int) bool                 { return true }
+func (l *testLogr) V(int) logr.Logger                      { panic("not implemented") }
+func (l *testLogr) WithName(string) logr.LogSink           { panic("not implemented") }
+func (l *testLogr) WithValues(...interface{}) logr.LogSink { panic("not implemented") }
+func (l *testLogr) WithCallDepth(depth int) logr.LogSink   { return l }
+
+var _ logr.LogSink = &testLogr{}
+var _ logr.CallDepthLogSink = &testLogr{}
+
+type callDepthTestLogr struct {
+	testLogr
+	callDepth int
+}
+
+func (l *callDepthTestLogr) resetCallDepth() {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.callDepth = 0
+}
+
+func (l *callDepthTestLogr) WithCallDepth(depth int) logr.LogSink {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	// Note: Usually WithCallDepth would be implemented by cloning l
+	// and setting the call depth on the clone. We modify l instead in
+	// this test helper for simplicity.
+	l.callDepth = depth + 1
+	return l
+}
+
+func (l *callDepthTestLogr) Info(level int, msg string, keysAndValues ...interface{}) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	// Add 2 to depth for the wrapper function caller and for invocation in
+	// test case.
+	_, file, line, _ := runtime.Caller(l.callDepth + 2)
+	l.entries = append(l.entries, testLogrEntry{
+		severity:      infoLog,
+		msg:           msg,
+		keysAndValues: append([]interface{}{file, line}, keysAndValues...),
+	})
+}
+
+func (l *callDepthTestLogr) Error(err error, msg string, keysAndValues ...interface{}) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	// Add 2 to depth for the wrapper function caller and for invocation in
+	// test case.
+	_, file, line, _ := runtime.Caller(l.callDepth + 2)
+	l.entries = append(l.entries, testLogrEntry{
+		severity:      errorLog,
+		msg:           msg,
+		keysAndValues: append([]interface{}{file, line}, keysAndValues...),
+		err:           err,
+	})
+}
+
+var _ logr.LogSink = &callDepthTestLogr{}
+var _ logr.CallDepthLogSink = &callDepthTestLogr{}
+
+func checkLogrEntryCorrectCaller(t *testing.T, wantFile string, wantLine int, entry testLogrEntry) {
+	t.Helper()
+
+	want := fmt.Sprintf("%s:%d", wantFile, wantLine)
+	// Log fields contain file and line number as first elements.
+	got := fmt.Sprintf("%s:%d", entry.keysAndValues[0], entry.keysAndValues[1])
+
+	if want != got {
+		t.Errorf("expected file and line %q but got %q", want, got)
+	}
 }
 
 // existedFlag contains all existed flag, without KlogPrefix
@@ -1442,4 +1765,82 @@ func TestKlogFlagPrefix(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestKObjs(t *testing.T) {
+	tests := []struct {
+		name string
+		obj  interface{}
+		want []ObjectRef
+	}{
+		{
+			name: "test for KObjs function with KMetadata slice",
+			obj: []kMetadataMock{
+				{
+					name: "kube-dns",
+					ns:   "kube-system",
+				},
+				{
+					name: "mi-conf",
+				},
+				{},
+			},
+			want: []ObjectRef{
+				{
+					Name:      "kube-dns",
+					Namespace: "kube-system",
+				},
+				{
+					Name: "mi-conf",
+				},
+				{},
+			},
+		},
+		{
+			name: "test for KObjs function with KMetadata pointer slice",
+			obj: []*kMetadataMock{
+				{
+					name: "kube-dns",
+					ns:   "kube-system",
+				},
+				{
+					name: "mi-conf",
+				},
+				nil,
+			},
+			want: []ObjectRef{
+				{
+					Name:      "kube-dns",
+					Namespace: "kube-system",
+				},
+				{
+					Name: "mi-conf",
+				},
+				{},
+			},
+		},
+		{
+			name: "test for KObjs function with slice does not implement KMetadata",
+			obj:  []int{1, 2, 3, 4, 6},
+			want: nil,
+		},
+		{
+			name: "test for KObjs function with interface",
+			obj:  "test case",
+			want: nil,
+		},
+		{
+			name: "test for KObjs function with nil",
+			obj:  nil,
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !reflect.DeepEqual(KObjs(tt.obj), tt.want) {
+				t.Errorf("\nwant:\t %v\n got:\t %v", tt.want, KObjs(tt.obj))
+			}
+		})
+	}
 }
