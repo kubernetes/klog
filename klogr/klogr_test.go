@@ -43,7 +43,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue"},
 			expectedOutput: ` "msg"="test"  "akey"="avalue"
 `,
-			expectedKlogOutput: `"test" akey="avalue"
+			expectedKlogOutput: `test: akey="avalue"
 `,
 		},
 		"should log with name and values passed to keysAndValues": {
@@ -52,7 +52,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue"},
 			expectedOutput: `me "msg"="test"  "akey"="avalue"
 `,
-			expectedKlogOutput: `"me: test" akey="avalue"
+			expectedKlogOutput: `me: test: akey="avalue"
 `,
 		},
 		"should log with multiple names and values passed to keysAndValues": {
@@ -61,7 +61,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue"},
 			expectedOutput: `hello/world "msg"="test"  "akey"="avalue"
 `,
-			expectedKlogOutput: `"hello/world: test" akey="avalue"
+			expectedKlogOutput: `hello/world: test: akey="avalue"
 `,
 		},
 		"should not print duplicate keys with the same value": {
@@ -70,7 +70,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue", "akey", "avalue"},
 			expectedOutput: ` "msg"="test"  "akey"="avalue"
 `,
-			expectedKlogOutput: `"test" akey="avalue"
+			expectedKlogOutput: `test: akey="avalue"
 `,
 		},
 		"should only print the last duplicate key when the values are passed to Info": {
@@ -79,7 +79,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue", "akey", "avalue2"},
 			expectedOutput: ` "msg"="test"  "akey"="avalue2"
 `,
-			expectedKlogOutput: `"test" akey="avalue2"
+			expectedKlogOutput: `test: akey="avalue2"
 `,
 		},
 		"should only print the duplicate key that is passed to Info if one was passed to the logger": {
@@ -88,7 +88,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue"},
 			expectedOutput: ` "msg"="test"  "akey"="avalue"
 `,
-			expectedKlogOutput: `"test" akey="avalue"
+			expectedKlogOutput: `test: akey="avalue"
 `,
 		},
 		"should sort within logger and parameter key/value pairs in the default format and dump the logger pairs first": {
@@ -97,7 +97,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey5", "avalue5", "akey4", "avalue4"},
 			expectedOutput: ` "msg"="test" "akey1"="avalue1" "akey8"="avalue8" "akey9"="avalue9" "akey4"="avalue4" "akey5"="avalue5"
 `,
-			expectedKlogOutput: `"test" akey9="avalue9" akey8="avalue8" akey1="avalue1" akey5="avalue5" akey4="avalue4"
+			expectedKlogOutput: `test: akey9="avalue9" akey8="avalue8" akey1="avalue1" akey5="avalue5" akey4="avalue4"
 `,
 		},
 		"should only print the key passed to Info when one is already set on the logger": {
@@ -106,7 +106,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue2"},
 			expectedOutput: ` "msg"="test"  "akey"="avalue2"
 `,
-			expectedKlogOutput: `"test" akey="avalue2"
+			expectedKlogOutput: `test: akey="avalue2"
 `,
 		},
 		"should correctly handle odd-numbers of KVs": {
@@ -115,7 +115,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue", "akey2"},
 			expectedOutput: ` "msg"="test"  "akey"="avalue" "akey2"=null
 `,
-			expectedKlogOutput: `"test" akey="avalue" akey2=<nil>
+			expectedKlogOutput: `test: akey="avalue" akey2=<nil>
 `,
 		},
 		"should correctly html characters": {
@@ -124,7 +124,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "<&>"},
 			expectedOutput: ` "msg"="test"  "akey"="<&>"
 `,
-			expectedKlogOutput: `"test" akey="<&>"
+			expectedKlogOutput: `test: akey="<&>"
 `,
 		},
 		"should correctly handle odd-numbers of KVs in both log values and Info args": {
@@ -133,7 +133,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"akey", "avalue", "akey2"},
 			expectedOutput: ` "msg"="test" "basekey1"="basevar1" "basekey2"=null "akey"="avalue" "akey2"=null
 `,
-			expectedKlogOutput: `"test" basekey1="basevar1" basekey2=<nil> akey="avalue" akey2=<nil>
+			expectedKlogOutput: `test: basekey1="basevar1" basekey2=<nil> akey="avalue" akey2=<nil>
 `,
 		},
 		"should correctly print regular error types": {
@@ -142,7 +142,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"err", errors.New("whoops")},
 			expectedOutput: ` "msg"="test"  "err"="whoops"
 `,
-			expectedKlogOutput: `"test" err="whoops"
+			expectedKlogOutput: `test: err="whoops"
 `,
 		},
 		"should use MarshalJSON in the default format if an error type implements it": {
@@ -151,7 +151,7 @@ func testOutput(t *testing.T, format string) {
 			keysAndValues: []interface{}{"err", &customErrorJSON{"whoops"}},
 			expectedOutput: ` "msg"="test"  "err"="WHOOPS"
 `,
-			expectedKlogOutput: `"test" err="whoops"
+			expectedKlogOutput: `test: err="whoops"
 `,
 		},
 		"should correctly print regular error types when using logr.Error": {
@@ -163,9 +163,9 @@ func testOutput(t *testing.T, format string) {
  "msg"="test" "error"="whoops"  
  "msg"="test" "error"="whoops"  
 `,
-			expectedKlogOutput: `"test" err="whoops"
-"test" err="whoops"
-"test" err="whoops"
+			expectedKlogOutput: `test: err="whoops"
+test: err="whoops"
+test: err="whoops"
 `,
 		},
 	}

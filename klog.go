@@ -88,6 +88,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/go-logr/logr"
 )
@@ -802,10 +803,16 @@ func (l *loggingT) infoS(logger *logr.Logger, filter LogFilter, depth int, msg s
 // set log severity by s
 func (l *loggingT) printS(err error, s severity, depth int, msg string, keysAndValues ...interface{}) {
 	b := &bytes.Buffer{}
-	b.WriteString(fmt.Sprintf("%q", msg))
+	// The message is never quoted. New lines get indented.
+	writeString(b, msg)
+	// Enhance readability by inserting : between message and key/value
+	// pairs, but only when the message does not already end with
+	// punctation.
+	if len(msg) > 0 && !unicode.IsPunct(rune(msg[len(msg)-1])) {
+		b.WriteString(":")
+	}
 	if err != nil {
-		b.WriteByte(' ')
-		b.WriteString(fmt.Sprintf("err=%q", err.Error()))
+		kvListFormat(b, "err", err)
 	}
 	kvListFormat(b, keysAndValues...)
 	l.printDepth(s, logging.logr, nil, depth+1, b)
@@ -824,18 +831,47 @@ func kvListFormat(b *bytes.Buffer, keysAndValues ...interface{}) {
 		}
 		b.WriteByte(' ')
 
-		switch v.(type) {
-		case string, error:
-			b.WriteString(fmt.Sprintf("%s=%q", k, v))
+		switch v := v.(type) {
+		case string:
+			writeStringValue(b, k, true, v)
+		case error:
+			writeStringValue(b, k, true, v.Error())
 		case []byte:
 			b.WriteString(fmt.Sprintf("%s=%+q", k, v))
 		default:
-			if _, ok := v.(fmt.Stringer); ok {
-				b.WriteString(fmt.Sprintf("%s=%q", k, v))
+			if s, ok := v.(fmt.Stringer); ok {
+				writeStringValue(b, k, true, s.String())
 			} else {
-				b.WriteString(fmt.Sprintf("%s=%+v", k, v))
+				writeStringValue(b, k, false, fmt.Sprintf("%+v", v))
 			}
 		}
+	}
+}
+
+func writeStringValue(b *bytes.Buffer, k interface{}, quoteV bool, v string) {
+	if !strings.Contains(v, "\n") {
+		b.WriteString(fmt.Sprintf("%s=", k))
+		if quoteV {
+			// Simple string, quote quotation marks and non-printable characters.
+			b.WriteString(strconv.Quote(v))
+			return
+		}
+		// Non-string with no line breaks.
+		b.WriteString(v)
+		return
+	}
+	// Complex multi-line string, show as-is with indention.
+	b.WriteString(fmt.Sprintf("===start of %s===\n ", k))
+	writeString(b, v)
+	b.WriteString(fmt.Sprintf("\n ===end of %s===", k))
+}
+
+func writeString(b *bytes.Buffer, s string) {
+	for i, line := range strings.Split(s, "\n") {
+		if i > 0 {
+			b.WriteString("\n ")
+		}
+		b.WriteString(line)
 	}
 }
 
