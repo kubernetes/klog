@@ -1647,3 +1647,33 @@ func KObjs(arg interface{}) []ObjectRef {
 	}
 	return objectRefs
 }
+
+// As implements both the fmt.Stringer and logr.Marshal interface with some
+// custom functions. Plain text output then will include the result of the Text
+// function whereas structured output (such as JSON) will include the result of
+// the Object function.
+//
+// The same can be done with custom structs. The advantage of this helper is
+// that the formatting code can be written inline in the same function that
+// logs some object.
+type As struct {
+	Text   func() string
+	Object func() interface{}
+}
+
+func (a As) String() string {
+	if a.Text == nil {
+		return "<<unknown, nil Text function>>"
+	}
+	return a.Text()
+}
+
+func (a As) MarshalLog() interface{} {
+	if a.Object == nil {
+		return "<<unknown, nil Object function>>"
+	}
+	return a.Object()
+}
+
+var _ fmt.Stringer = As{}
+var _ logr.Marshaler = As{}

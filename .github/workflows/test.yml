@@ -14,11 +14,16 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Test
+    - name: Test klog
       run: |
         go get -t -v ./...
         go test -v -race ./...
+    - name: Test tools
+      run: |
         cd hack/tools && go test -v -race ./...
+    - name: Test examples
+      run: |
+        cd examples && go test -v -race ./...
   lint:
     runs-on: ubuntu-latest
     steps:
