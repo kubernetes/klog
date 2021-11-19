@@ -808,8 +808,8 @@ func (l *loggingT) printS(err error, s severity, depth int, msg string, keysAndV
 	// Enhance readability by inserting : between message and key/value
 	// pairs, but only when the message does not already end with
 	// punctation.
-	if len(msg) > 0 && !unicode.IsPunct(rune(msg[len(msg)-1])) {
-		b.WriteString(":")
+	if len(msg) > 0 && !unicode.IsPunct(rune(msg[len(msg)-1])) && (err != nil || len(keysAndValues) > 0) {
+		b.WriteString(" |")
 	}
 	if err != nil {
 		kvListFormat(b, "err", err)
@@ -861,9 +861,9 @@ func writeStringValue(b *bytes.Buffer, k interface{}, quoteV bool, v string) {
 		return
 	}
 	// Complex multi-line string, show as-is with indention.
-	b.WriteString(fmt.Sprintf("===start of %s===\n ", k))
+	b.WriteString(fmt.Sprintf("%s>>>\n ", k))
 	writeString(b, v)
-	b.WriteString(fmt.Sprintf("\n ===end of %s===", k))
+	b.WriteString("\n <<<")
 }
 
 func writeString(b *bytes.Buffer, s string) {

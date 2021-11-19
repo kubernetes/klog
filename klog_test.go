@@ -894,22 +894,22 @@ func TestInfoS(t *testing.T) {
 	}{
 		{
 			msg:        "test",
-			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test: pod=\"kubedns\"\n",
+			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test | pod=\"kubedns\"\n",
 			keysValues: []interface{}{"pod", "kubedns"},
 		},
 		{
 			msg:        "test",
-			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test: replicaNum=20\n",
+			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test | replicaNum=20\n",
 			keysValues: []interface{}{"replicaNum", 20},
 		},
 		{
 			msg:        "test",
-			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test: err=\"test error\"\n",
+			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test | err=\"test error\"\n",
 			keysValues: []interface{}{"err", errors.New("test error")},
 		},
 		{
 			msg:        "test",
-			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test: err=\"test error\"\n",
+			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test | err=\"test error\"\n",
 			keysValues: []interface{}{"err", errors.New("test error")},
 		},
 	}
@@ -956,37 +956,37 @@ with a line break.`,
 	}{
 		{
 			msg:        "test",
-			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test: pod=\"kubedns\"\n",
+			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test | pod=\"kubedns\"\n",
 			keysValues: []interface{}{"pod", "kubedns"},
 		},
 		{
 			msg:        "test",
-			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test: replicaNum=20\n",
+			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test | replicaNum=20\n",
 			keysValues: []interface{}{"replicaNum", 20},
 		},
 		{
 			msg:        "test",
-			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test: err=\"test error\"\n",
+			format:     "I0102 15:04:05.067890    1234 klog_test.go:%d] test | err=\"test error\"\n",
 			keysValues: []interface{}{"err", errors.New("test error")},
 		},
 		{
 			msg: `first message line
 second message line`,
 			format: `I0102 15:04:05.067890    1234 klog_test.go:%d] first message line
- second message line: ===start of multiLine===
+ second message line | multiLine>>>
  first value line
  second value line
- ===end of multiLine===
+ <<<
 `,
 			keysValues: []interface{}{"multiLine", `first value line
 second value line`},
 		},
 		{
 			msg: `message`,
-			format: `I0102 15:04:05.067890    1234 klog_test.go:%d] message: ===start of myData===
+			format: `I0102 15:04:05.067890    1234 klog_test.go:%d] message | myData>>>
  {Data:This is some long text
  with a line break.}
- ===end of myData===
+ <<<
 `,
 			keysValues: []interface{}{"myData", myData},
 		},
@@ -1041,11 +1041,11 @@ func TestErrorS(t *testing.T) {
 		}{
 			{
 				err:    fmt.Errorf("update status failed"),
-				format: "E0102 15:04:05.067890    1234 klog_test.go:%d] Failed to update pod status: err=\"update status failed\" pod=\"kubedns\"\n",
+				format: "E0102 15:04:05.067890    1234 klog_test.go:%d] Failed to update pod status | err=\"update status failed\" pod=\"kubedns\"\n",
 			},
 			{
 				err:    nil,
-				format: "E0102 15:04:05.067890    1234 klog_test.go:%d] Failed to update pod status: pod=\"kubedns\"\n",
+				format: "E0102 15:04:05.067890    1234 klog_test.go:%d] Failed to update pod status | pod=\"kubedns\"\n",
 			},
 		}
 		for _, e := range errorList {
@@ -1109,12 +1109,12 @@ func TestKvListFormat(t *testing.T) {
 No whitespace.`,
 				"pod", "kubedns",
 			},
-			want: ` ===start of multiLineString===
+			want: ` multiLineString>>>
  Hello world!
  	Starts with tab.
    Starts with spaces.
  No whitespace.
- ===end of multiLineString=== pod="kubedns"`,
+ <<< pod="kubedns"`,
 		},
 		{
 			keysValues: []interface{}{"pod", "kubedns", "maps", map[string]int{"three": 4}},
