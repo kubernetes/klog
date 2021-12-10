@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/go-logr/logr"
+
 	"k8s.io/klog/v2"
 )
 
@@ -39,11 +41,11 @@ func ExampleAs() {
 	}
 	klog.InfoS("No formatting", "item", item)
 
-	as := klog.As{
-		Text: func() string {
+	as := klog.As(
+		func() string {
 			return fmt.Sprintf("{Some: %q Data: %q}", item.some, item.data)
 		},
-		Object: func() interface{} {
+		func() interface{} {
 			return struct {
 				Data, Some string
 			}{
@@ -51,19 +53,22 @@ func ExampleAs() {
 				Data: item.data,
 			}
 		},
-	}
+	)
 	klog.InfoS("With stringer", "item", as)
 
 	// We don't have a logger in klog which uses MarshalLog, but we can
 	// test its behavior by invoking it directly.
-	klog.InfoS("With marshaler", "item", as.MarshalLog())
+	klog.InfoS("With marshaler", "item", as.(logr.Marshaler).MarshalLog())
 
-	// Not a valid call, but klog.As tolerates it.
-	klog.InfoS("Callbacks should never be nil", "item", klog.As{})
+	// Not a useful call, but klog.As tolerates it.
+	klog.InfoS("Callbacks should never be nil", "item", klog.As(nil, nil))
+
+	klog.InfoS("hello", "obj", klog.AsText(func() string { return "world" }))
 
 	// Output:
 	// "No formatting" item={some:thing data:someone}
 	// "With stringer" item="{Some: \"thing\" Data: \"someone\"}"
 	// "With marshaler" item={Data:someone Some:thing}
-	// "Callbacks should never be nil" item="<<unknown, nil Text function>>"
+	// "Callbacks should never be nil" item=<nil>
+	// "hello" obj="world"
 }

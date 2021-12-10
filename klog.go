@@ -1648,32 +1648,83 @@ func KObjs(arg interface{}) []ObjectRef {
 	return objectRefs
 }
 
-// As implements both the fmt.Stringer and logr.Marshal interface with some
-// custom functions. Plain text output then will include the result of the Text
+// As returns an object that implements the fmt.Stringer and/or logr.Marshal
+// interface depending on which custom functions are provided. Those functions
+// will only be called when the log message really gets printed.
+//
+// Plain text output then will include the result of the text
 // function whereas structured output (such as JSON) will include the result of
-// the Object function.
+// the object function.
+//
+// The text function should always be provided because not all log output
+// formats support logr.Marshal.
 //
 // The same can be done with custom structs. The advantage of this helper is
 // that the formatting code can be written inline in the same function that
 // logs some object.
-type As struct {
-	Text   func() string
-	Object func() interface{}
-}
-
-func (a As) String() string {
-	if a.Text == nil {
-		return "<<unknown, nil Text function>>"
+func As(text func() string, object func() interface{}) interface{} {
+	if text != nil && object != nil {
+		return as{
+			asText:   asText{text: text},
+			asObject: asObject{object: object},
+		}
 	}
-	return a.Text()
-}
 
-func (a As) MarshalLog() interface{} {
-	if a.Object == nil {
-		return "<<unknown, nil Object function>>"
+	if text != nil {
+		return asText{text: text}
 	}
-	return a.Object()
+
+	if object != nil {
+		// Not useful in the general case, but Perhaps the logger is
+		// known to support it.
+		return asObject{object: object}
+	}
+
+	// Shouldn't get here.
+	return nil
 }
 
-var _ fmt.Stringer = As{}
-var _ logr.Marshaler = As{}
+// AsText returns a fmt.Stringer which will call the provided function. This
+// can be used to log values as text with custom formatting that is defined
+// inline.
+func AsText(text func() string) fmt.Stringer {
+	return asText{text: text}
+}
+
+// AsObject returns a logr.Marshaller which will call the provided
+// function. This can be used to log values as an object with custom formatting
+// that is defined inline.
+//
+// Beware that some output formats do not support this and then will just dump
+// an object identifier for the wrapper (for example, {object:0x4f2780}).
+func AsObject(object func() interface{}) logr.Marshaler {
+	return asObject{object: object}
+}
+
+type as struct {
+	asText
+	asObject
+}
+
+var _ fmt.Stringer = as{}
+var _ logr.Marshaler = as{}
+
+type asText struct {
+	text func() string
+}
+
+func (a asText) String() string {
+	return a.text()
+}
+
+var _ fmt.Stringer = asText{}
+
+type asObject struct {
+	object func() interface{}
+}
+
+func (a asObject) MarshalLog() interface{} {
+	return a.object()
+}
+
+var _ logr.Marshaler = asObject{}
