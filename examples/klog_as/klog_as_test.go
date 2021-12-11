@@ -69,6 +69,6 @@ func ExampleAs() {
 	// "No formatting" item={some:thing data:someone}
 	// "With stringer" item="{Some: \"thing\" Data: \"someone\"}"
 	// "With marshaler" item={Data:someone Some:thing}
-	// "Callbacks should never be nil" item=<nil>
+	// "Callbacks should never be nil" item="<application error, nil text callback>"
 	// "hello" obj="world"
 }

@@ -1648,40 +1648,40 @@ func KObjs(arg interface{}) []ObjectRef {
 	return objectRefs
 }
 
-// As returns an object that implements the fmt.Stringer and/or logr.Marshal
-// interface depending on which custom functions are provided. Those functions
-// will only be called when the log message really gets printed.
+// As returns an object that implements the fmt.Stringer and logr.Marshal
+// interface by invoking the provided callbacks. Those functions will only be
+// called when the log message really gets printed.
 //
-// Plain text output then will include the result of the text
-// function whereas structured output (such as JSON) will include the result of
-// the object function.
+// Plain text output will include the result of the text function whereas
+// structured output (such as JSON) will include the result of the object
+// function.
 //
-// The text function should always be provided because not all log output
-// formats support logr.Marshal.
+// AsText can be used when the result is meant to be logged as string in all
+// output formats. A corresponding AsObject function is not useful because
+// logr.Marshal is usually only supported by logger implementations with
+// structured output and plain text formats would dump the proxy object instead
+// of the actual data.
 //
 // The same can be done with custom structs. The advantage of this helper is
-// that the formatting code can be written inline in the same function that
-// logs some object.
+// that the formatting code can be written inline in the function which logs
+// some data.
 func As(text func() string, object func() interface{}) interface{} {
-	if text != nil && object != nil {
-		return as{
-			asText:   asText{text: text},
-			asObject: asObject{object: object},
+	// These functions should never be nil, but we should
+	// better not crash when they are.
+	if text == nil {
+		text = func() string {
+			return "<application error, nil text callback>"
 		}
 	}
-
-	if text != nil {
-		return asText{text: text}
+	if object == nil {
+		object = func() interface{} {
+			return "<application error, nil object callback>"
+		}
 	}
-
-	if object != nil {
-		// Not useful in the general case, but Perhaps the logger is
-		// known to support it.
-		return asObject{object: object}
+	return as{
+		asText:   asText{text: text},
+		asObject: asObject{object: object},
 	}
-
-	// Shouldn't get here.
-	return nil
 }
 
 // AsText returns a fmt.Stringer which will call the provided function. This
@@ -1689,16 +1689,6 @@ func As(text func() string, object func() interface{}) interface{} {
 // inline.
 func AsText(text func() string) fmt.Stringer {
 	return asText{text: text}
-}
-
-// AsObject returns a logr.Marshaller which will call the provided
-// function. This can be used to log values as an object with custom formatting
-// that is defined inline.
-//
-// Beware that some output formats do not support this and then will just dump
-// an object identifier for the wrapper (for example, {object:0x4f2780}).
-func AsObject(object func() interface{}) logr.Marshaler {
-	return asObject{object: object}
 }
 
 type as struct {
