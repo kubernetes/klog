@@ -32,6 +32,7 @@ How to use klog
 - You can now use `log_file` instead of `log_dir` for logging to a single file (See `examples/log_file/usage_log_file.go`)
 - If you want to redirect everything logged using klog somewhere else (say syslog!), you can use `klog.SetOutput()` method and supply a `io.Writer`. (See `examples/set_output/usage_set_output.go`)
 - For more logging conventions (See [Logging Conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md))
+- See our documentation on [pkg.go.dev/k8s.io](https://pkg.go.dev/k8s.io/klog).
 
 **NOTE**: please use the newer go versions that support semantic import versioning in modules, ideally go 1.11.4 or greater.
 
@@ -85,7 +86,7 @@ The comment from glog.go introduces the ideas:
 
 		glog.Fatalf("Initialization failed: %s", err)
 
-	See the documentation for the V function for an explanation
+	See the documentation of the V function for an explanation
 	of these examples:
 
 		if glog.V(2) {
