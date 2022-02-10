@@ -378,10 +378,11 @@ func TestSetOutputDataRace(t *testing.T) {
 	setFlags()
 	defer logging.swap(logging.newBuffers())
 	var wg sync.WaitGroup
+	var daemons []*flushDaemon
 	for i := 1; i <= 50; i++ {
-		go func() {
-			logging.flushDaemon()
-		}()
+		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll)
+		daemon.run()
+		daemons = append(daemons, daemon)
 	}
 	for i := 1; i <= 50; i++ {
 		wg.Add(1)
@@ -391,9 +392,9 @@ func TestSetOutputDataRace(t *testing.T) {
 		}()
 	}
 	for i := 1; i <= 50; i++ {
-		go func() {
-			logging.flushDaemon()
-		}()
+		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll)
+		daemon.run()
+		daemons = append(daemons, daemon)
 	}
 	for i := 1; i <= 50; i++ {
 		wg.Add(1)
@@ -403,11 +404,14 @@ func TestSetOutputDataRace(t *testing.T) {
 		}()
 	}
 	for i := 1; i <= 50; i++ {
-		go func() {
-			logging.flushDaemon()
-		}()
+		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll)
+		daemon.run()
+		daemons = append(daemons, daemon)
 	}
 	wg.Wait()
+	for _, d := range daemons {
+		d.stop()
+	}
 }
 
 func TestLogToOutput(t *testing.T) {
@@ -1851,4 +1855,39 @@ func (s *structWithLock) addWithDefer() {
 	s.m.Lock()
 	defer s.m.Unlock()
 	s.n++
+}
+
+func TestFlushDaemon(t *testing.T) {
+	for sev := severity.InfoLog; sev < severity.FatalLog; sev++ {
+		var flushed int
+		spyFunc := func() { flushed++ }
+		testLog := loggingT{flushD: newFlushDaemon(10*time.Millisecond, spyFunc)}
+
+		// Calling testLog will call createFile, which should start the daemon.
+		testLog.print(sev, nil, nil, "x")
+
+		if !testLog.flushD.isRunning() {
+			t.Error("expected flushD to be running")
+		}
+
+		time.Sleep(400 * time.Millisecond)
+		testLog.flushD.stop()
+
+		if flushed < 3 {
+			t.Errorf("expected syncBuffer to be flushed at least 3 times, but was %d times", flushed)
+		}
+	}
+}
+
+func TestStopFlushDaemon(t *testing.T) {
+	logging.flushD.stop()
+	logging.flushD = newFlushDaemon(time.Second, func() {})
+	logging.flushD.run()
+	if !logging.flushD.isRunning() {
+		t.Error("expected flushD to be running")
+	}
+	StopFlushDaemon()
+	if logging.flushD.isRunning() {
+		t.Error("expected flushD to be stopped")
+	}
 }
