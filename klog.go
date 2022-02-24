@@ -396,7 +396,7 @@ func init() {
 	logging.addDirHeader = false
 	logging.skipLogHeaders = false
 	logging.oneOutput = false
-	logging.flushD = newFlushDaemon(flushInterval, logging.lockAndFlushAll)
+	logging.flushD = newFlushDaemon(flushInterval, logging.lockAndFlushAll, nil)
 }
 
 // InitFlags is for explicitly initializing the flags.
@@ -1055,12 +1055,16 @@ type flushDaemon struct {
 	stopDone chan struct{}
 }
 
-// newFlushDaemon retrun a new flushDaemon.
-func newFlushDaemon(interval time.Duration, flush func()) *flushDaemon {
+// newFlushDaemon returns a new flushDaemon. If the passed clock is nil, a
+// clock.RealClock is used.
+func newFlushDaemon(interval time.Duration, flush func(), tickClock clock.WithTicker) *flushDaemon {
+	if tickClock == nil {
+		tickClock = clock.RealClock{}
+	}
 	return &flushDaemon{
 		interval: interval,
 		flush:    flush,
-		clock:    clock.RealClock{},
+		clock:    tickClock,
 	}
 }
 

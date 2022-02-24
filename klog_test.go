@@ -381,7 +381,7 @@ func TestSetOutputDataRace(t *testing.T) {
 	var wg sync.WaitGroup
 	var daemons []*flushDaemon
 	for i := 1; i <= 50; i++ {
-		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll)
+		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll, nil)
 		daemon.run()
 		daemons = append(daemons, daemon)
 	}
@@ -393,7 +393,7 @@ func TestSetOutputDataRace(t *testing.T) {
 		}()
 	}
 	for i := 1; i <= 50; i++ {
-		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll)
+		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll, nil)
 		daemon.run()
 		daemons = append(daemons, daemon)
 	}
@@ -405,7 +405,7 @@ func TestSetOutputDataRace(t *testing.T) {
 		}()
 	}
 	for i := 1; i <= 50; i++ {
-		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll)
+		daemon := newFlushDaemon(time.Second, logging.lockAndFlushAll, nil)
 		daemon.run()
 		daemons = append(daemons, daemon)
 	}
@@ -1866,11 +1866,7 @@ func TestFlushDaemon(t *testing.T) {
 		}
 		testClock := testingclock.NewFakeClock(time.Now())
 		testLog := loggingT{
-			flushD: &flushDaemon{
-				interval: time.Millisecond,
-				flush:    spyFunc,
-				clock:    testClock,
-			},
+			flushD: newFlushDaemon(time.Second, spyFunc, testClock),
 		}
 
 		// Calling testLog will call createFile, which should start the daemon.
@@ -1892,7 +1888,7 @@ func TestFlushDaemon(t *testing.T) {
 
 func TestStopFlushDaemon(t *testing.T) {
 	logging.flushD.stop()
-	logging.flushD = newFlushDaemon(time.Second, func() {})
+	logging.flushD = newFlushDaemon(time.Second, func() {}, nil)
 	logging.flushD.run()
 	if !logging.flushD.isRunning() {
 		t.Error("expected flushD to be running")
