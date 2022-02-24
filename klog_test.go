@@ -39,6 +39,7 @@ import (
 	"k8s.io/klog/v2/internal/buffer"
 	"k8s.io/klog/v2/internal/severity"
 	"k8s.io/klog/v2/internal/test"
+	testingclock "k8s.io/utils/clock/testing"
 )
 
 // TODO: This test package should be refactored so that tests cannot
@@ -1859,9 +1860,18 @@ func (s *structWithLock) addWithDefer() {
 
 func TestFlushDaemon(t *testing.T) {
 	for sev := severity.InfoLog; sev < severity.FatalLog; sev++ {
-		var flushed int
-		spyFunc := func() { flushed++ }
-		testLog := loggingT{flushD: newFlushDaemon(10*time.Millisecond, spyFunc)}
+		flushed := make(chan struct{}, 1)
+		spyFunc := func() {
+			flushed <- struct{}{}
+		}
+		testClock := testingclock.NewFakeClock(time.Now())
+		testLog := loggingT{
+			flushD: &flushDaemon{
+				interval: time.Millisecond,
+				flush:    spyFunc,
+				clock:    testClock,
+			},
+		}
 
 		// Calling testLog will call createFile, which should start the daemon.
 		testLog.print(sev, nil, nil, "x")
@@ -1870,12 +1880,13 @@ func TestFlushDaemon(t *testing.T) {
 			t.Error("expected flushD to be running")
 		}
 
-		time.Sleep(400 * time.Millisecond)
+		testClock.Step(time.Second)
+		<-flushed
+		testClock.Step(time.Second)
+		<-flushed
 		testLog.flushD.stop()
-
-		if flushed < 3 {
-			t.Errorf("expected syncBuffer to be flushed at least 3 times, but was %d times", flushed)
-		}
+		// wait for stop to trigger one last flush
+		<-flushed
 	}
 }
 

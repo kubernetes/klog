@@ -94,6 +94,7 @@ import (
 	"k8s.io/klog/v2/internal/buffer"
 	"k8s.io/klog/v2/internal/serialize"
 	"k8s.io/klog/v2/internal/severity"
+	"k8s.io/utils/clock"
 )
 
 // severityValue identifies the sort of log: info, warning etc. It also implements
@@ -1047,6 +1048,7 @@ const flushInterval = 5 * time.Second
 // flushDaemon periodically flushes the log file buffers.
 type flushDaemon struct {
 	mu       sync.Mutex
+	clock    clock.WithTicker
 	interval time.Duration
 	flush    func()
 	stopC    chan struct{}
@@ -1058,6 +1060,7 @@ func newFlushDaemon(interval time.Duration, flush func()) *flushDaemon {
 	return &flushDaemon{
 		interval: interval,
 		flush:    flush,
+		clock:    clock.RealClock{},
 	}
 }
 
@@ -1074,15 +1077,16 @@ func (f *flushDaemon) run() {
 	f.stopC = make(chan struct{}, 1)
 	f.stopDone = make(chan struct{}, 1)
 
+	ticker := f.clock.NewTicker(f.interval)
 	go func() {
-		ticker := time.NewTicker(f.interval)
 		defer ticker.Stop()
 		defer func() { f.stopDone <- struct{}{} }()
 		for {
 			select {
-			case <-ticker.C:
+			case <-ticker.C():
 				f.flush()
 			case <-f.stopC:
+				f.flush()
 				return
 			}
 		}
