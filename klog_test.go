@@ -1876,13 +1876,32 @@ func TestFlushDaemon(t *testing.T) {
 			t.Error("expected flushD to be running")
 		}
 
+		timer := time.NewTimer(10 * time.Second)
+		defer timer.Stop()
 		testClock.Step(time.Second)
-		<-flushed
+		select {
+		case <-flushed:
+		case <-timer.C:
+			t.Fatal("flushDaemon didn't call flush function on tick")
+		}
+
+		timer = time.NewTimer(10 * time.Second)
+		defer timer.Stop()
 		testClock.Step(time.Second)
-		<-flushed
+		select {
+		case <-flushed:
+		case <-timer.C:
+			t.Fatal("flushDaemon didn't call flush function on second tick")
+		}
+
+		timer = time.NewTimer(10 * time.Second)
+		defer timer.Stop()
 		testLog.flushD.stop()
-		// wait for stop to trigger one last flush
-		<-flushed
+		select {
+		case <-flushed:
+		case <-timer.C:
+			t.Fatal("flushDaemon didn't call flush function on last time on stop")
+		}
 	}
 }
 
