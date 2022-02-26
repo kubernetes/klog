@@ -1900,7 +1900,7 @@ func TestFlushDaemon(t *testing.T) {
 		select {
 		case <-flushed:
 		case <-timer.C:
-			t.Fatal("flushDaemon didn't call flush function on last time on stop")
+			t.Fatal("flushDaemon didn't call flush function one last time on stop")
 		}
 	}
 }
