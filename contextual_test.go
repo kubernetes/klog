@@ -43,3 +43,16 @@ func ExampleSetLogger() {
 	// logger after SetLoggerWithOptions with ContextualLogger(false): *klog.klogger
 	// logger after SetLoggerWithOptions with ContextualLogger(true): logr.discardLogSink
 }
+
+func ExampleFlushLogger() {
+	defer klog.ClearLogger()
+
+	// This simple logger doesn't need flushing, but others might.
+	klog.SetLoggerWithOptions(logr.Discard(), klog.FlushLogger(func() {
+		fmt.Print("flushing...")
+	}))
+	klog.Flush()
+
+	// Output:
+	// flushing...
+}

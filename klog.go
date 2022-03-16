@@ -1097,6 +1097,9 @@ func (l *loggingT) flushAll() {
 			file.Sync()  // ignore error
 		}
 	}
+	if globalLoggerOptions.flush != nil {
+		globalLoggerOptions.flush()
+	}
 }
 
 // CopyStandardLogTo arranges for messages written to the Go "log" package's
