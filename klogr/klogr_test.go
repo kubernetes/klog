@@ -113,9 +113,18 @@ func testOutput(t *testing.T, format string) {
 			klogr:         new(),
 			text:          "test",
 			keysAndValues: []interface{}{"akey", "avalue", "akey2"},
-			expectedOutput: ` "msg"="test"  "akey"="avalue" "akey2"=null
+			expectedOutput: ` "msg"="test"  "akey"="avalue" "akey2"="(MISSING)"
 `,
-			expectedKlogOutput: `"test" akey="avalue" akey2=<nil>
+			expectedKlogOutput: `"test" akey="avalue" akey2="(MISSING)"
+`,
+		},
+		"should correctly handle odd-numbers of KVs in WithValue": {
+			klogr:         new().WithValues("keyWithoutValue"),
+			text:          "test",
+			keysAndValues: []interface{}{"akey", "avalue", "akey2"},
+			expectedOutput: ` "msg"="test" "keyWithoutValue"="(MISSING)" "akey"="avalue" "akey2"="(MISSING)"
+`,
+			expectedKlogOutput: `"test" keyWithoutValue="(MISSING)" akey="avalue" akey2="(MISSING)"
 `,
 		},
 		"should correctly html characters": {
@@ -131,9 +140,9 @@ func testOutput(t *testing.T, format string) {
 			klogr:         new().WithValues("basekey1", "basevar1", "basekey2"),
 			text:          "test",
 			keysAndValues: []interface{}{"akey", "avalue", "akey2"},
-			expectedOutput: ` "msg"="test" "basekey1"="basevar1" "basekey2"=null "akey"="avalue" "akey2"=null
+			expectedOutput: ` "msg"="test" "basekey1"="basevar1" "basekey2"="(MISSING)" "akey"="avalue" "akey2"="(MISSING)"
 `,
-			expectedKlogOutput: `"test" basekey1="basevar1" basekey2=<nil> akey="avalue" akey2=<nil>
+			expectedKlogOutput: `"test" basekey1="basevar1" basekey2="(MISSING)" akey="avalue" akey2="(MISSING)"
 `,
 		},
 		"should correctly print regular error types": {
