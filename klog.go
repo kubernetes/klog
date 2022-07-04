@@ -437,6 +437,10 @@ func InitFlags(flagset *flag.FlagSet) {
 	flagset.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
 }
 
+func SetVerbosity(level Level) {
+	logging.setVerbosity(level)
+}
+
 // Flush flushes all pending log I/O.
 func Flush() {
 	logging.lockAndFlushAll()
@@ -550,6 +554,10 @@ type loggingT struct {
 }
 
 var logging loggingT
+
+func (l *loggingT) setVerbosity(level Level) {
+	l.setVState(level, nil, false)
+}
 
 // setVState sets a consistent state for V logging.
 // l.mu is held.

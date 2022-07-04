@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	stdLog "log"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1156,6 +1157,99 @@ func TestSetVState(t *testing.T) {
 
 	if want.verbosity != target.verbosity || !compareModuleSpec(want.vmodule, target.vmodule) || want.filterLength != target.filterLength {
 		t.Errorf("setVState method doesn't configure loggingT values' verbosity, vmodule or filterLength:\nwant:\n\tverbosity:\t%v\n\tvmodule:\t%v\n\tfilterLength:\t%v\ngot:\n\tverbosity:\t%v\n\tvmodule:\t%v\n\tfilterLength:\t%v", want.verbosity, want.vmodule, want.filterLength, target.verbosity, target.vmodule, target.filterLength)
+	}
+}
+
+func Test_loggingT_SetVerbosity(t *testing.T) {
+
+	type args struct {
+		level Level
+	}
+	tests := []struct {
+		name      string
+		args      args
+		wantLevel Level
+	}{
+		{
+			name: "TestLevel1",
+			args: args{
+				level: 1,
+			},
+			wantLevel: 1,
+		},
+		{
+			name: "TestLevel2",
+			args: args{
+				level: 2,
+			},
+			wantLevel: 2,
+		},
+		{
+			name: "TestLevel3",
+			args: args{
+				level: 3,
+			},
+			wantLevel: 3,
+		},
+		{
+			name: "TestLevel4",
+			args: args{
+				level: 4,
+			},
+			wantLevel: 4,
+		},
+		{
+			name: "TestLevel5",
+			args: args{
+				level: 5,
+			},
+			wantLevel: 5,
+		},
+		{
+			name: "TestLevel6",
+			args: args{
+				level: 6,
+			},
+			wantLevel: 6,
+		},
+		{
+			name: "TestLevel7",
+			args: args{
+				level: 7,
+			},
+			wantLevel: 7,
+		},
+		{
+			name: "TestLevel8",
+			args: args{
+				level: 8,
+			},
+			wantLevel: 8,
+		},
+		{
+			name: "TestLevel9",
+			args: args{
+				level: 9,
+			},
+			wantLevel: 9,
+		},
+		{
+			name: "TestLevel10",
+			args: args{
+				level: 10,
+			},
+			wantLevel: 10,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := createTestValueOfLoggingT()
+			l.verbosity = Level(rand.Intn(9) + 1) // Randomize the entry value
+			l.setVerbosity(tt.args.level)
+			if l.verbosity != tt.wantLevel {
+				t.Errorf("loggingT.SetVerbosty() = %v, want %v", l.verbosity, tt.wantLevel)
+			}
+		})
 	}
 }
 
