@@ -167,20 +167,9 @@ type ResourceRef struct {
 	Name      string `json:"name,omitempty"`
 }
 
-// KResourceRef returns ResourceRef from group, version, kind, namespace and name.
-func KResourceRef(group, version, kind, namespace, name string) ResourceRef {
-	return ResourceRef{
-		Group:     group,
-		Version:   version,
-		Kind:      kind,
-		Namespace: namespace,
-		Name:      name,
-	}
-}
-
-func (l ResourceRef) String() string {
+func (r ResourceRef) String() string {
 	var parts []string
-	for _, s := range []string{l.Group, l.Version, l.Kind, l.Namespace, l.Name} {
+	for _, s := range []string{r.Group, r.Version, r.Kind, r.Namespace, r.Name} {
 		if strings.TrimSpace(s) != "" {
 			parts = append(parts, s)
 		}
@@ -190,7 +179,7 @@ func (l ResourceRef) String() string {
 
 // MarshalLog ensures that loggers with support for structured output will log
 // as a struct by removing the String method via a custom type.
-func (l ResourceRef) MarshalLog() interface{} {
-	type kResourceRefWithoutStringFunc ResourceRef
-	return kResourceRefWithoutStringFunc(l)
+func (r ResourceRef) MarshalLog() interface{} {
+	type resourceRefWithoutStringFunc ResourceRef
+	return resourceRefWithoutStringFunc(r)
 }
