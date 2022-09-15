@@ -953,6 +953,138 @@ func TestKRef(t *testing.T) {
 	}
 }
 
+func TestKResourceRef(t *testing.T) {
+	tests := []struct {
+		testname  string
+		group     string
+		version   string
+		kind      string
+		name      string
+		namespace string
+		want      ResourceRef
+	}{
+		{
+			testname:  "with group, version, kind, namespace and name",
+			name:      "test-name",
+			namespace: "test-ns",
+			group:     "test-group",
+			version:   "test-version",
+			kind:      "test-kind",
+			want: ResourceRef{
+				Group:     "test-group",
+				Version:   "test-version",
+				Kind:      "test-kind",
+				Name:      "test-name",
+				Namespace: "test-ns",
+			},
+		},
+		{
+			testname:  "with group, version, namespace and name",
+			name:      "test-name",
+			namespace: "test-ns",
+			group:     "test-group",
+			version:   "test-version",
+			want: ResourceRef{
+				Group:     "test-group",
+				Version:   "test-version",
+				Name:      "test-name",
+				Namespace: "test-ns",
+			},
+		},
+		{
+			testname:  "with group, namespace and name",
+			name:      "test-name",
+			namespace: "test-ns",
+			group:     "test-group",
+			want: ResourceRef{
+				Group:     "test-group",
+				Name:      "test-name",
+				Namespace: "test-ns",
+			},
+		},
+		{
+			testname:  "with namespace and name",
+			name:      "test-name",
+			namespace: "test-ns",
+			want: ResourceRef{
+				Name:      "test-name",
+				Namespace: "test-ns",
+			},
+		},
+		{
+			testname: "with only name",
+			name:     "test-name",
+			want: ResourceRef{
+				Name: "test-name",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testname, func(t *testing.T) {
+			if KResourceRef(tt.group, tt.version, tt.kind, tt.namespace, tt.name) != tt.want {
+				t.Errorf("expected %v, got %v", tt.want, KResourceRef(tt.group, tt.version, tt.kind, tt.namespace, tt.name))
+			}
+		})
+	}
+}
+
+func TestKResourceString(t *testing.T) {
+	tests := []struct {
+		testname  string
+		group     string
+		version   string
+		kind      string
+		name      string
+		namespace string
+		want      string
+	}{
+		{
+			testname:  "with group, version, kind, namespace and name",
+			group:     "test-group",
+			version:   "test-version",
+			kind:      "test-kind",
+			namespace: "test-ns",
+			name:      "test-name",
+			want:      "test-group/test-version/test-kind/test-ns/test-name",
+		},
+		{
+			testname:  "with group, version, namespace and name",
+			group:     "test-group",
+			version:   "test-version",
+			namespace: "test-ns",
+			name:      "test-name",
+			want:      "test-group/test-version/test-ns/test-name",
+		},
+		{
+			testname:  "with group, namespace and name",
+			group:     "test-group",
+			namespace: "test-ns",
+			name:      "test-name",
+			want:      "test-group/test-ns/test-name",
+		},
+		{
+			testname:  "with namespace and name",
+			namespace: "test-ns",
+			name:      "test-name",
+			want:      "test-ns/test-name",
+		},
+		{
+			testname: "with only name",
+			name:     "test-name",
+			want:     "test-name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testname, func(t *testing.T) {
+			if KResourceRef(tt.group, tt.version, tt.kind, tt.namespace, tt.name).String() != tt.want {
+				t.Errorf("expected %v, got %v", tt.want, KResourceRef(tt.group, tt.version, tt.kind, tt.namespace, tt.name))
+			}
+		})
+	}
+}
+
 // Test that InfoS and InfoSDepth work as advertised.
 func TestInfoS(t *testing.T) {
 	defer CaptureState().Restore()

@@ -19,6 +19,7 @@ package klog
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/go-logr/logr"
 )
@@ -155,4 +156,41 @@ func (ks kobjSlice) process() ([]interface{}, error) {
 		}
 	}
 	return objectRefs, nil
+}
+
+// ResourceRef is a full Kubernetes resource reference composed of Group, Version, Kind, Namespace and Name.
+type ResourceRef struct {
+	Group     string `json:"group,omitempty"`
+	Version   string `json:"version,omitempty"`
+	Kind      string `json:"kind,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
+// KResourceRef returns ResourceRef from group, version, kind, namespace and name.
+func KResourceRef(group, version, kind, namespace, name string) ResourceRef {
+	return ResourceRef{
+		Group:     group,
+		Version:   version,
+		Kind:      kind,
+		Namespace: namespace,
+		Name:      name,
+	}
+}
+
+func (l ResourceRef) String() string {
+	var parts []string
+	for _, s := range []string{l.Group, l.Version, l.Kind, l.Namespace, l.Name} {
+		if strings.TrimSpace(s) != "" {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, "/")
+}
+
+// MarshalLog ensures that loggers with support for structured output will log
+// as a struct by removing the String method via a custom type.
+func (l ResourceRef) MarshalLog() interface{} {
+	type kResourceRefWithoutStringFunc ResourceRef
+	return kResourceRefWithoutStringFunc(l)
 }
