@@ -966,19 +966,19 @@ func TestResourceRefString(t *testing.T) {
 		{
 			testname:  "with group, version, kind, namespace and name",
 			group:     "test-group",
-			version:   "test-version",
+			version:   "v0.1.0",
 			kind:      "test-kind",
 			namespace: "test-ns",
 			name:      "test-name",
-			want:      "test-group/test-version/test-kind/test-ns/test-name",
+			want:      "test-group/v0.1.0/test-kind/test-ns/test-name",
 		},
 		{
 			testname:  "with group, version, namespace and name",
 			group:     "test-group",
-			version:   "test-version",
+			version:   "v0.1.0",
 			namespace: "test-ns",
 			name:      "test-name",
-			want:      "test-group/test-version/test-ns/test-name",
+			want:      "test-group/v0.1.0/test-ns/test-name",
 		},
 		{
 			testname:  "with group, namespace and name",

@@ -166,6 +166,27 @@ No whitespace.`,
 			want: " pods=[kube-system/kube-dns mi-conf]",
 		},
 		{
+			keysValues: []interface{}{"deployment", klog.ResourceRef{Group: "apps", Kind: "deployment", Version: "v1", Name: "test-name", Namespace: "test-ns"}, "status", "ready"},
+			want:       " deployment=\"apps/v1/deployment/test-ns/test-name\" status=\"ready\"",
+		},
+		{
+			keysValues: []interface{}{"pod", klog.ResourceRef{Kind: "pod", Version: "v1", Name: "test-name", Namespace: "test-ns"}, "status", "ready"},
+			want:       " pod=\"v1/pod/test-ns/test-name\" status=\"ready\"",
+		},
+		{
+			keysValues: []interface{}{"object", klog.ResourceRef{Group: "test-group", Kind: "test-kind", Version: "v1"}, "status", "ready"},
+			want:       " object=\"test-group/v1/test-kind\" status=\"ready\"",
+		},
+		{
+			keysValues: []interface{}{"object", klog.ResourceRef{Name: "test-name", Namespace: "test-ns"}, "status", "ready"},
+			want:       " object=\"test-ns/test-name\" status=\"ready\"",
+		},
+		{
+			keysValues: []interface{}{"object", klog.ResourceRef{Kind: "test-kind", Name: "test-name", Namespace: "test-ns"}, "status", "ready"},
+			want:       " object=\"test-kind/test-ns/test-name\" status=\"ready\"",
+		},
+
+		{
 			keysValues: []interface{}{"point-1", point{100, 200}, "point-2", emptyPoint},
 			want:       " point-1=\"x=100, y=200\" point-2=\"<panic: value method k8s.io/klog/v2/internal/serialize_test.point.String called using nil *point pointer>\"",
 		},

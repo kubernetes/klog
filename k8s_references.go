@@ -158,7 +158,7 @@ func (ks kobjSlice) process() ([]interface{}, error) {
 	return objectRefs, nil
 }
 
-// ResourceRef is a full Kubernetes resource reference composed of Group, Version, Kind, Namespace and Name.
+// ResourceRef references a Kubernetes object using Group, Version, Kind, Namespace and Name
 type ResourceRef struct {
 	Group     string `json:"group,omitempty"`
 	Version   string `json:"version,omitempty"`
