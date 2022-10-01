@@ -995,16 +995,12 @@ func (sb *syncBuffer) Sync() error {
 
 // CalculateMaxSize returns the real max size in bytes after considering the default max size and the flag options.
 func CalculateMaxSize() uint64 {
-	if logging.logFile != "" {
-		if logging.logFileMaxSizeMB == 0 {
-			// If logFileMaxSizeMB is zero, we don't have limitations on the log size.
-			return math.MaxUint64
-		}
-		// Flag logFileMaxSizeMB is in MB for user convenience.
-		return logging.logFileMaxSizeMB * 1024 * 1024
+	if logging.logFileMaxSizeMB == 0 {
+		// If logFileMaxSizeMB is zero, we don't have limitations on the log size.
+		return math.MaxUint64
 	}
-	// If "log_file" flag is not specified, the target file (sb.file) will be cleaned up when reaches a fixed size.
-	return MaxSize
+	// Flag logFileMaxSizeMB is in MB for user convenience.
+	return logging.logFileMaxSizeMB * 1024 * 1024
 }
 
 func (sb *syncBuffer) Write(p []byte) (n int, err error) {
