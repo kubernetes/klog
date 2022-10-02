@@ -116,6 +116,21 @@ func logName(tag string, t time.Time) (name, link string) {
 	return name, program + "." + tag
 }
 
+// logName returns a new log file name containing tag, with start time t, and
+// the name for the symlink for tag.
+func logFileName(logFile string, t time.Time) (name string) {
+	name = fmt.Sprintf("%s.%04d%02d%02d-%02d%02d%02d.%d",
+		logFile,
+		t.Year(),
+		t.Month(),
+		t.Day(),
+		t.Hour(),
+		t.Minute(),
+		t.Second(),
+		pid)
+	return name
+}
+
 var onceLogDirs sync.Once
 
 // create creates a new log file and returns the file and its filename, which
@@ -126,7 +141,7 @@ var onceLogDirs sync.Once
 // If startup is true, existing files are opened for appending instead of truncated.
 func create(tag string, t time.Time, startup bool) (f *os.File, filename string, err error) {
 	if logging.logFile != "" {
-		f, err := openOrCreate(logging.logFile, startup)
+		f, err := openOrCreate(logFileName(logging.logFile, t), startup)
 		if err == nil {
 			return f, logging.logFile, nil
 		}
