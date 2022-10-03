@@ -1525,3 +1525,64 @@ func TestKlogFlagPrefix(t *testing.T) {
 		}
 	})
 }
+
+func TestCountLogFile(t *testing.T) {
+	var c = -1
+	var tag = "logFile"
+	fmt.Println("================================================")
+	delFile := countLogFile(tag, "A", c)
+	fmt.Println("delete key=>" + delFile)
+	m := LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+	fmt.Println("================================================")
+	delFile = countLogFile(tag, "B", c)
+	fmt.Println("delete key=>" + delFile)
+	m = LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+	fmt.Println("================================================")
+	delFile = countLogFile(tag, "C", c)
+	fmt.Println("delete key=>" + delFile)
+	m = LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+	fmt.Println("================================================")
+	delFile = countLogFile(tag, "D", c)
+	fmt.Println("delete key=>" + delFile)
+	m = LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+	fmt.Println("================================================")
+	delFile = countLogFile(tag, "E", c)
+	fmt.Println("delete key=>" + delFile)
+	m = LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+	fmt.Println("================================================")
+	delFile = countLogFile(tag, "F", c)
+	fmt.Println("delete key=>" + delFile)
+	m = LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+	fmt.Println("================================================")
+	delFile = countLogFile(tag, "G", c)
+	fmt.Println("delete key=>" + delFile)
+	m = LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+	fmt.Println("================================================")
+	delFile = countLogFile(tag, "H", c)
+	fmt.Println("delete key=>" + delFile)
+	m = LogFilePathMap[tag]
+	for i := 0; i < len(m); i++ {
+		fmt.Println(strconv.Itoa(i) + "==>" + m[strconv.Itoa(i)])
+	}
+}
