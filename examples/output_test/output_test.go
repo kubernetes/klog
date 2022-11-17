@@ -20,6 +20,7 @@ limitations under the License.
 package output_test
 
 import (
+	"context"
 	"io"
 	"testing"
 
@@ -61,6 +62,28 @@ func TestTextloggerOutput(t *testing.T) {
 	t.Run("klog-backend", func(t *testing.T) {
 		test.Output(t, test.OutputConfig{NewLogger: newLogger, AsBackend: true})
 	})
+}
+
+// TestTextloggerOutput tests the textlogger when wrapped with a context logger.
+func TestTextloggerWithContext(t *testing.T) {
+	state := klog.CaptureState()
+	defer state.Restore()
+	klog.FromContextKeys = []klog.ContextKey{{1, "one"}}
+
+	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
+		config := textlogger.NewConfig(
+			textlogger.Verbosity(v),
+			textlogger.Output(out),
+		)
+		if err := config.VModule().Set(vmodule); err != nil {
+			panic(err)
+		}
+		logger := textlogger.NewLogger(config)
+		ctx := klog.NewContext(context.Background(), logger)
+		logger = klog.FromContext(ctx)
+		return logger
+	}
+	test.Output(t, test.OutputConfig{NewLogger: newLogger, SupportsVModule: true})
 }
 
 // TestZaprOutput tests the zapr, directly and as backend.

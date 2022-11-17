@@ -124,17 +124,69 @@ func EnableContextualLogging(enabled bool) {
 	logging.contextualLoggingEnabled = enabled
 }
 
+
+// ContextKey contains the key used for retrieving a value from a context and
+// the name that is to be used for it in a log call.
+type ContextKey struct {
+	Key  interface{}
+	Name string
+}
+
+// SetFromContextKeys tells FromContext which values from the context it is
+// called for are meant to be logged. The logger returned by FromContext will
+// then remember the context and these keys and when it is used to emit a log
+// entry, the values from the context will also get logged.
+func SetFromContextKeys(keys ...ContextKey) {
+	logging.mu.Lock()
+	defer logging.mu.Unlock()
+	logging.fromContextKeys = keys
+}
+
 // FromContext retrieves a logger set by the caller or, if not set,
 // falls back to the program's global logger (a Logger instance or klog
 // itself).
 func FromContext(ctx context.Context) Logger {
-	if logging.contextualLoggingEnabled {
-		if logger, err := logr.FromContext(ctx); err == nil {
-			return logger
-		}
+	if !logging.contextualLoggingEnabled {
+		return Background()
 	}
 
-	return Background()
+	logger, err := logr.FromContext(ctx)
+	if err != nil {
+		logger = Background()
+	}
+
+	logging.mu.Lock()
+	fromContextKeys := logging.fromContextKeys
+	logging.mu.Unlock()
+
+	if len(fromContextKeys) > 0 {
+		logSink := logger.GetSink()
+		values := contextValues{
+			ctx: ctx,
+			keys: fromContextKeys,
+		}
+		if helperLogSink, ok := logSink.(logr.CallStackHelperLogSink); ok {
+			logSink = &contextLogSinkHelper{
+				LogSink: logSink,
+				CallStackHelperLogSink: helperLogSink,
+				contextValues: values,
+			}
+		} else if depthLogSink, ok := logSink.(logr.CallDepthLogSink); ok {
+			logSink = &contextLogSinkDepth {
+				LogSink: logSink,
+				CallDepthLogSink: depthLogSink,
+				contextValues: values,
+			}
+		} else {
+			logSink = &contextLogSink{
+				LogSink: logSink,
+				contextValues: values,
+			}
+		}
+		logger = logger.WithSink(logSink)
+	}
+
+	return logger
 }
 
 // TODO can be used as a last resort by code that has no means of

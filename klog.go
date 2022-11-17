@@ -513,6 +513,10 @@ type settings struct {
 
 	// If set, all output will be filtered through the filter.
 	filter LogFilter
+
+	// fromContextKeys tells FromContext which values from the context are
+	// meant to be logger.
+	fromContextKeys []ContextKey
 }
 
 // deepCopy creates a copy that doesn't share anything with the original
