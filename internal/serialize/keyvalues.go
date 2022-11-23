@@ -246,6 +246,18 @@ func ErrorToString(err error) (ret string) {
 	return
 }
 
+// ErrorDetailerToDetails gets the error details,
+// handing panics if they occur.
+func ErrorDetailerToDetails(details func() any) (ret any) {
+	defer func() {
+		if err := recover(); err != nil {
+			ret = fmt.Sprintf("<panic: %s>", err)
+		}
+	}()
+	ret = details()
+	return
+}
+
 func writeTextWriterValue(b *bytes.Buffer, v textWriter) {
 	b.WriteByte('=')
 	defer func() {

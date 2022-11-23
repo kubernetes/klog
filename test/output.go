@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/funcr"
 
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
@@ -408,6 +409,42 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 		text:   "structs",
 		values: []interface{}{"s", struct{ Name, Kind, hidden string }{Name: "worker", Kind: "pod", hidden: "ignore"}},
 		expectedOutput: `I output.go:<LINE>] "structs" s={"Name":"worker","Kind":"pod"}
+`,
+	},
+	"structured error": {
+		text: "structured error",
+		err:  structuredError{error: errors.New("fake error"), details: funcr.PseudoStruct{"x", 1, "y", "multi-line\nstring"}},
+		expectedOutput: `E output.go:<LINE>] "structured error" err="fake error" errDetails={ x=1 y=<
+	multi-line
+	string
+ > }
+`,
+	},
+	"structured error value": {
+		text:   "structured error",
+		values: []interface{}{"someErr", structuredError{error: errors.New("fake error"), details: funcr.PseudoStruct{"x", 1, "y", "multi-line\nstring"}}},
+		expectedOutput: `I output.go:<LINE>] "structured error" someErr="fake error" someErrDetails={ x=1 y=<
+	multi-line
+	string
+ > }
+`,
+	},
+	"my structured error": {
+		text: "my structured error",
+		err:  myStructuredError{error: errors.New("fake error"), details: myStructuredErrorDetails{1, "multi-line\nstring", 3.1}},
+		expectedOutput: `E output.go:<LINE>] "my structured error" err="fake error" errDetails={"SomeInt":1,"SomeString":"multi-line\nstring"}
+`,
+	},
+	"my structured error value": {
+		text:   "my structured error",
+		values: []interface{}{"someErr", myStructuredError{error: errors.New("fake error"), details: myStructuredErrorDetails{1, "multi-line\nstring", 3.1}}},
+		expectedOutput: `I output.go:<LINE>] "my structured error" someErr="fake error" someErrDetails={"SomeInt":1,"SomeString":"multi-line\nstring"}
+`,
+	},
+	"my faulty ErrorDetails": {
+		text:   "my faulty ErrorDetails",
+		values: []interface{}{"err", klog.ErrorWithDetailsFunc(errors.New("fake error"), func() any { panic("fake panic") })},
+		expectedOutput: `I output.go:<LINE>] "my faulty ErrorDetails" err="fake error" errDetails="<panic: fake panic>"
 `,
 	},
 	"PseudoStruct": {
@@ -1109,4 +1146,39 @@ func traceIDFromHex(str string) TraceID {
 		result[i] = decoded[i]
 	}
 	return result
+}
+
+// Structured error with additional values that are not part of the message
+// returned by Error().
+type structuredError struct {
+	error
+	details klog.PseudoStruct
+}
+
+// ErrorDetails gets called in addition to Error function to
+// log additional information.
+func (err structuredError) ErrorDetails() interface{} {
+	return err.details
+}
+
+var _ error = structuredError{}
+var _ klog.ErrorDetailer = structuredError{}
+
+// myStructuredError is a variant of structuredError where details are a struct.
+type myStructuredError struct {
+	error
+	details myStructuredErrorDetails
+}
+
+func (err myStructuredError) ErrorDetails() interface{} {
+	return err.details
+}
+
+var _ error = myStructuredError{}
+var _ klog.ErrorDetailer = myStructuredError{}
+
+type myStructuredErrorDetails struct {
+	SomeInt     int
+	SomeString  string
+	hiddenFloat float64
 }

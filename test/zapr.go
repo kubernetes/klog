@@ -290,6 +290,34 @@ I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" a=1 c=
  > }
 `: `{"caller":"test/output.go:<LINE>","msg":"keys and values","v":0,"parent":["boolsub",true,"intsub",1,"recursive",["sub","level2"],"multiLine","abc\ndef"]}
 `,
+
+		// Errors are rendered without details by zapr.
+		// This is okay, they were meant to be optional.
+		`I output.go:<LINE>] "structured error" someErr="fake error" someErrDetails={ x=1 y=<
+	multi-line
+	string
+ > }
+`: `{"caller":"test/output.go:<LINE>","msg":"structured error","v":0,"someErr":"fake error"}
+`,
+
+		`I output.go:<LINE>] "my structured error" someErr="fake error" someErrDetails={"SomeInt":1,"SomeString":"multi-line\nstring"}
+`: `{"caller":"test/output.go:<LINE>","msg":"my structured error","v":0,"someErr":"fake error"}
+`,
+
+		`E output.go:<LINE>] "structured error" err="fake error" errDetails={ x=1 y=<
+	multi-line
+	string
+ > }
+`: `{"caller":"test/output.go:<LINE>","msg":"structured error","err":"fake error"}
+`,
+
+		`E output.go:<LINE>] "my structured error" err="fake error" errDetails={"SomeInt":1,"SomeString":"multi-line\nstring"}
+`: `{"caller":"test/output.go:<LINE>","msg":"my structured error","err":"fake error"}
+`,
+
+		`I output.go:<LINE>] "my faulty ErrorDetails" err="fake error" errDetails="<panic: fake panic>"
+`: `{"caller":"test/output.go:<LINE>","msg":"my faulty ErrorDetails","v":0,"err":"fake error"}
+`,
 	}
 }
 

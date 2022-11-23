@@ -29,6 +29,10 @@ import (
 	"github.com/go-logr/logr/funcr"
 )
 
+type errorDetailer interface {
+	ErrorDetails() any
+}
+
 // KVFormat serializes one key/value pair into the provided buffer.
 // A space gets inserted before the pair. It returns the key.
 func (f Formatter) KVFormat(b *bytes.Buffer, k, v interface{}) string {
@@ -72,6 +76,11 @@ func (f Formatter) KVFormat(b *bytes.Buffer, k, v interface{}) string {
 		writeStringValue(b, v)
 	case error:
 		writeStringValue(b, ErrorToString(v))
+		// It might provide additional details.
+		if v, ok := v.(errorDetailer); ok {
+			value := ErrorDetailerToDetails(v.ErrorDetails)
+			f.FormatKVs(b, []any{key + "Details", value})
+		}
 	case logr.Marshaler:
 		value := MarshalerToValue(v)
 		// A marshaler that returns a string is useful for
