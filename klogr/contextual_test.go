@@ -14,52 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package klog_test
+package klogr_test
 
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/go-logr/logr"
 	"k8s.io/klog/v2"
 )
-
-func ExampleSetLogger() {
-	defer klog.ClearLogger()
-
-	// Logger is only used as backend, Background() returns klogr.
-	klog.SetLogger(logr.Discard())
-	fmt.Printf("logger after SetLogger: %T\n", klog.Background().GetSink())
-
-	// Logger is only used as backend, Background() returns klogr.
-	klog.SetLoggerWithOptions(logr.Discard(), klog.ContextualLogger(false))
-	fmt.Printf("logger after SetLoggerWithOptions with ContextualLogger(false): %T\n", klog.Background().GetSink())
-
-	// Logger is used as backend and directly.
-	klog.SetLoggerWithOptions(logr.Discard(), klog.ContextualLogger(true))
-	fmt.Printf("logger after SetLoggerWithOptions with ContextualLogger(true): %T\n", klog.Background().GetSink())
-
-	// Output:
-	// logger after SetLogger: *klog.klogger
-	// logger after SetLoggerWithOptions with ContextualLogger(false): *klog.klogger
-	// logger after SetLoggerWithOptions with ContextualLogger(true): logr.discardLogSink
-}
-
-func ExampleFlushLogger() {
-	defer klog.ClearLogger()
-
-	// This simple logger doesn't need flushing, but others might.
-	klog.SetLoggerWithOptions(logr.Discard(), klog.FlushLogger(func() {
-		fmt.Print("flushing...")
-	}))
-	klog.Flush()
-
-	// Output:
-	// flushing...
-}
 
 // TestSetKLogLogger checks that it is possible to use a modified KLog Logger
 // as contextual logger.

@@ -273,3 +273,10 @@ func writeKeysAndValues(b *bytes.Buffer, keysAndValues logr.KeysAndValues) {
 	}
 	b.WriteString(" }")
 }
+
+// KlogLogSink is an interface that is implemented by LogSink's which call klog
+// to write their output. Such LogSinks must not be called by klog, otherwise
+// the stack flows over due to infinite recursion.
+type KlogLogSink interface {
+	UsesKlog()
+}
