@@ -138,13 +138,15 @@ func EnableContextualLogging(enabled bool) {
 // falls back to the program's global logger (a Logger instance or klog
 // itself).
 func FromContext(ctx context.Context) Logger {
-	if logging.contextualLoggingEnabled {
-		if logger, err := logr.FromContext(ctx); err == nil {
-			return logger
-		}
+	if !logging.contextualLoggingEnabled {
+		return Background()
 	}
 
-	return Background()
+	if logger, err := logr.FromContext(ctx); err == nil {
+		return logger
+	}
+
+	return Background().WithContext(ctx)
 }
 
 // TODO can be used as a last resort by code that has no means of
