@@ -388,6 +388,12 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 			expectedOutput: `I output.go:<LINE>] "map keys" map[test:%!s(bool=true)]="test"
 `,
 		},
+		"KeysAndValues": {
+			text:   "keys and values",
+			values: []interface{}{"parent", logr.KeysAndValues{{"boolsub", true}, {"intsub", 1}, {"recursive", logr.KeysAndValues{{"sub", "level2"}}}}},
+			expectedOutput: `I output.go:<LINE>] "keys and values" parent={ boolsub=true intsub=1 recursive={ sub="level2" } }
+`,
+		},
 	}
 	for n, test := range tests {
 		t.Run(n, func(t *testing.T) {
