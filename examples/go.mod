@@ -3,7 +3,7 @@ module example
 go 1.13
 
 require (
-	github.com/go-logr/logr v1.2.2
+	github.com/go-logr/logr v1.2.3
 	github.com/go-logr/zapr v1.2.3
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	go.uber.org/goleak v1.1.12
@@ -12,3 +12,7 @@ require (
 )
 
 replace k8s.io/klog/v2 => ../
+
+replace github.com/go-logr/logr => github.com/pohly/logr v1.0.1-0.20221123084031-5a74e449aa62
+
+replace github.com/go-logr/zapr => github.com/pohly/zapr v1.0.1-0.20221123125532-4cbab42a2470
