@@ -410,6 +410,16 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 		expectedOutput: `I output.go:<LINE>] "structs" s={"Name":"worker","Kind":"pod"}
 `,
 	},
+	"PseudoStruct": {
+		text:   "keys and values",
+		values: []interface{}{"parent", klog.PseudoStruct{"boolsub", true, "intsub", 1, "recursive", klog.PseudoStruct{"sub", "level2"}, "multiLine", "abc\ndef"}},
+		expectedOutput: `I output.go:<LINE>] "keys and values" parent={ boolsub=true intsub=1 recursive={ sub="level2" } multiLine=<
+	abc
+	def
+ > }
+`,
+	},
+
 	"klog.Format": {
 		text:   "klog.Format",
 		values: []interface{}{"s", klog.Format(struct{ Name, Kind, hidden string }{Name: "worker", Kind: "pod", hidden: "ignore"})},

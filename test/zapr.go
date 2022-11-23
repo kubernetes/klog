@@ -283,6 +283,13 @@ I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" a=1 c=
 {"caller":"test/output.go:<LINE>","msg":"duplicates","trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1,"v":0}
 {"caller":"test/output.go:<LINE>","msg":"duplicates","trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1,"c":3,"trace":"101112131415161718191a1b1c1d1e1f","span":"2122232425262728","d":4,"v":0}
 `,
+		// Without support for funcr.PseudoStruct, zapr falls back to rendering a list.
+		`I output.go:<LINE>] "keys and values" parent={ boolsub=true intsub=1 recursive={ sub="level2" } multiLine=<
+	abc
+	def
+ > }
+`: `{"caller":"test/output.go:<LINE>","msg":"keys and values","v":0,"parent":["boolsub",true,"intsub",1,"recursive",["sub","level2"],"multiLine","abc\ndef"]}
+`,
 	}
 }
 

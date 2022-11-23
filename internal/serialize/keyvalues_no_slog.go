@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/funcr"
 )
 
 // KVFormat serializes one key/value pair into the provided buffer.
@@ -76,6 +77,8 @@ func (f Formatter) KVFormat(b *bytes.Buffer, k, v interface{}) string {
 		switch value := value.(type) {
 		case string:
 			writeStringValue(b, value)
+		case funcr.PseudoStruct:
+			f.writePseudoStruct(b, []interface{}(v))
 		default:
 			f.formatAny(b, value)
 		}
@@ -93,6 +96,8 @@ func (f Formatter) KVFormat(b *bytes.Buffer, k, v interface{}) string {
 		// convert the value to string before logging it.
 		b.WriteByte('=')
 		b.WriteString(fmt.Sprintf("%+q", v))
+	case funcr.PseudoStruct:
+		f.writePseudoStruct(b, []interface{}(v))
 	default:
 		f.formatAny(b, v)
 	}
