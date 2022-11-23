@@ -1,2 +1,6 @@
 github.com/go-logr/logr v1.2.0 h1:QK40JKJyMdUDz+h+xvCsru/bJhvG0UxvePV0ufL/AcE=
 github.com/go-logr/logr v1.2.0/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
+github.com/pohly/logr v1.0.1-0.20221206165918-68f59133d07f h1:g9oE7e/zc3yns7MXB0HCoQoEZM4oU/JZy2V/lFrhTVM=
+github.com/pohly/logr v1.0.1-0.20221206165918-68f59133d07f/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
+github.com/pohly/logr v1.0.1-0.20221206175035-8b691a4dd7a4 h1:gWuiztcBCEUMdJC+UNFdcd7u7A/h7cv2cBabRvdxAyU=
+github.com/pohly/logr v1.0.1-0.20221206175035-8b691a4dd7a4/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=

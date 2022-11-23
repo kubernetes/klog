@@ -37,6 +37,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	funcrtypes "github.com/go-logr/logr/funcr/types"
 
 	"k8s.io/klog/v2"
 )
@@ -386,6 +387,12 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 			text:       "map keys",
 			values:     []interface{}{map[string]bool{"test": true}, "test"},
 			expectedOutput: `I output.go:<LINE>] "map keys" map[test:%!s(bool=true)]="test"
+`,
+		},
+		"KeysAndValues": {
+			text:   "keys and values",
+			values: []interface{}{"parent", funcrtypes.PseudoStruct{"boolsub", true, "intsub", 1, "recursive", funcrtypes.PseudoStruct{"sub", "level2"}}},
+			expectedOutput: `I output.go:<LINE>] "keys and values" parent={ boolsub=true intsub=1 recursive={ sub="level2" } }
 `,
 		},
 	}
