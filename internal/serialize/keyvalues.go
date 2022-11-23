@@ -114,13 +114,13 @@ func formatKV(b *bytes.Buffer, k, v interface{}) {
 	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/migration-to-structured-logging.md#name-arguments
 	// for the sake of performance. Keys with spaces,
 	// special characters, etc. will break parsing.
+	kStr := ""
 	if sK, ok := k.(string); ok {
-		// Avoid one allocation when the key is a string, which
-		// normally it should be.
-		b.WriteString(sK)
+		kStr = sK
 	} else {
-		b.WriteString(fmt.Sprintf("%s", k))
+		kStr = fmt.Sprintf("%s", k)
 	}
+	b.WriteString(kStr)
 
 	// The type checks are sorted so that more frequently used ones
 	// come first because that is then faster in the common
@@ -134,6 +134,12 @@ func formatKV(b *bytes.Buffer, k, v interface{}) {
 		writeStringValue(b, true, v)
 	case error:
 		writeStringValue(b, true, ErrorToString(v))
+		// It might *also* implement logr.Marshaler to get additional values
+		// logged.
+		if marshaler, ok := v.(logr.Marshaler); ok {
+			value := marshaler.MarshalLog()
+			formatKV(b, kStr+"Details", value)
+		}
 	case logr.Marshaler:
 		value := MarshalerToValue(v)
 		// A marshaler that returns a string is useful for
