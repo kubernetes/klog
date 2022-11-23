@@ -389,6 +389,24 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 			expectedOutput: `I output.go:<LINE>] "map keys" map[test:%!s(bool=true)]="test"
 `,
 		},
+		"structured error": {
+			text: "structured error",
+			err:  structuredError{error: errors.New("fake error"), Attributes: funcrtypes.PseudoStruct{"x", 1, "y", "multi-line\nstring"}},
+			expectedOutput: `E output.go:<LINE>] "structured error" err="fake error" errDetails={ x=1 y=<
+	multi-line
+	string
+ > }
+`,
+		},
+		"structured error value": {
+			text:   "structured error",
+			values: []interface{}{"someErr", structuredError{error: errors.New("fake error"), Attributes: funcrtypes.PseudoStruct{"x", 1, "y", "multi-line\nstring"}}},
+			expectedOutput: `I output.go:<LINE>] "structured error" someErr="fake error" someErrDetails={ x=1 y=<
+	multi-line
+	string
+ > }
+`,
+		},
 		"KeysAndValues": {
 			text:   "keys and values",
 			values: []interface{}{"parent", funcrtypes.PseudoStruct{"boolsub", true, "intsub", 1, "recursive", funcrtypes.PseudoStruct{"sub", "level2"}}},
@@ -853,3 +871,16 @@ func (f faultyError) Error() string {
 }
 
 var _ error = faultyError{}
+
+// Structured error with additional values that are not part of the message
+// returned by Error().
+type structuredError struct {
+	error
+	Attributes funcrtypes.PseudoStruct
+}
+
+// MarshalLog gets called in addition to Error function to
+// log additional information.
+func (err structuredError) MarshalLog() interface{} {
+	return err.Attributes
+}
