@@ -34,18 +34,25 @@ import (
 	"k8s.io/klog/v2/textlogger"
 )
 
+func newLogger(out io.Writer, v int, vmodule string) logr.Logger {
+	return newZaprLogger(out, v)
+}
+
 // TestZaprOutput tests the zapr, directly and as backend.
 func TestZaprOutput(t *testing.T) {
 	test.InitKlog(t)
-	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
-		return newZaprLogger(out, v)
-	}
 	t.Run("direct", func(t *testing.T) {
 		test.Output(t, test.OutputConfig{NewLogger: newLogger, ExpectedOutputMapping: test.ZaprOutputMappingDirect()})
 	})
 	t.Run("klog-backend", func(t *testing.T) {
 		test.Output(t, test.OutputConfig{NewLogger: newLogger, AsBackend: true, ExpectedOutputMapping: test.ZaprOutputMappingIndirect()})
 	})
+}
+
+// Benchmark direct zapr output.
+func BenchmarkZaprOutput(b *testing.B) {
+	test.InitKlog(b)
+	test.Benchmark(b, test.OutputConfig{NewLogger: newLogger, ExpectedOutputMapping: test.ZaprOutputMappingDirect()})
 }
 
 // TestKlogrStackText tests klogr.klogr -> klog -> text logger.

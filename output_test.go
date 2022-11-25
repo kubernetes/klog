@@ -26,18 +26,27 @@ import (
 	"k8s.io/klog/v2/test"
 )
 
-// TestKlogOutput tests klog output without a logger.
+// klogConfig tests klog output without a logger.
+var klogConfig = test.OutputConfig{}
+
 func TestKlogOutput(t *testing.T) {
 	test.InitKlog(t)
-	test.Output(t, test.OutputConfig{})
+	test.Output(t, klogConfig)
 }
 
-// TestKlogKlogrOutput tests klogr output via klog, using the klog/v2 klogr.
+func BenchmarkKlogOutput(b *testing.B) {
+	test.InitKlog(b)
+	test.Benchmark(b, klogConfig)
+}
+
+// klogKlogrConfig tests klogr output via klog, using the klog/v2 klogr.
+var klogKLogrConfig = test.OutputConfig{
+	NewLogger: func(out io.Writer, v int, vmodule string) logr.Logger {
+		return klog.NewKlogr()
+	},
+}
+
 func TestKlogrOutput(t *testing.T) {
 	test.InitKlog(t)
-	test.Output(t, test.OutputConfig{
-		NewLogger: func(out io.Writer, v int, vmodule string) logr.Logger {
-			return klog.NewKlogr()
-		},
-	})
+	test.Output(t, klogKLogrConfig)
 }

@@ -26,23 +26,34 @@ import (
 	"k8s.io/klog/v2/textlogger"
 )
 
-// TestTextloggerOutput tests the textlogger, directly and as backend.
+// These test cover the textlogger, directly and as backend.
+func newLogger(out io.Writer, v int, vmodule string) logr.Logger {
+	config := textlogger.NewConfig(
+		textlogger.Verbosity(v),
+		textlogger.Output(out),
+	)
+	if err := config.VModule().Set(vmodule); err != nil {
+		panic(err)
+	}
+	return textlogger.NewLogger(config)
+}
+
+var (
+	directConfig   = test.OutputConfig{NewLogger: newLogger, SupportsVModule: true}
+	indirectConfig = test.OutputConfig{NewLogger: newLogger, AsBackend: true}
+)
+
 func TestTextloggerOutput(t *testing.T) {
 	test.InitKlog(t)
-	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
-		config := textlogger.NewConfig(
-			textlogger.Verbosity(v),
-			textlogger.Output(out),
-		)
-		if err := config.VModule().Set(vmodule); err != nil {
-			panic(err)
-		}
-		return textlogger.NewLogger(config)
-	}
 	t.Run("direct", func(t *testing.T) {
-		test.Output(t, test.OutputConfig{NewLogger: newLogger, SupportsVModule: true})
+		test.Output(t, directConfig)
 	})
 	t.Run("klog-backend", func(t *testing.T) {
-		test.Output(t, test.OutputConfig{NewLogger: newLogger, AsBackend: true})
+		test.Output(t, indirectConfig)
 	})
+}
+
+func BenchmarkTextloggerOutput(b *testing.B) {
+	test.InitKlog(b)
+	test.Benchmark(b, directConfig)
 }
