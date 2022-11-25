@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"flag"
 	"strings"
 	"testing"
 
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/test"
 
 	"github.com/go-logr/logr"
 )
@@ -169,14 +169,9 @@ func testOutput(t *testing.T, format string) {
 			klogr: new().V(0),
 			text:  "test",
 			err:   errors.New("whoops"),
-			// The message is printed to three different log files (info, warning, error), so we see it three times in our output buffer.
 			expectedOutput: ` "msg"="test" "error"="whoops" 
- "msg"="test" "error"="whoops" 
- "msg"="test" "error"="whoops" 
 `,
 			expectedKlogOutput: `"test" err="whoops"
-"test" err="whoops"
-"test" err="whoops"
 `,
 		},
 	}
@@ -209,13 +204,8 @@ func testOutput(t *testing.T, format string) {
 }
 
 func TestOutput(t *testing.T) {
-	klog.InitFlags(nil)
-	flag.CommandLine.Set("v", "10")
-	flag.CommandLine.Set("skip_headers", "true")
-	flag.CommandLine.Set("logtostderr", "false")
-	flag.CommandLine.Set("alsologtostderr", "false")
-	flag.CommandLine.Set("stderrthreshold", "10")
-	flag.Parse()
+	fs := test.InitKlog(t)
+	fs.Set("skip_headers", "true")
 
 	formats := []string{
 		formatNew,
