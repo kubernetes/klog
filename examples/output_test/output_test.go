@@ -34,17 +34,15 @@ import (
 	"k8s.io/klog/v2/textlogger"
 )
 
-func init() {
-	test.InitKlog()
-}
-
 // TestKlogOutput tests klog output without a logger.
 func TestKlogOutput(t *testing.T) {
+	test.InitKlog(t)
 	test.Output(t, test.OutputConfig{})
 }
 
 // TestTextloggerOutput tests the textlogger, directly and as backend.
 func TestTextloggerOutput(t *testing.T) {
+	test.InitKlog(t)
 	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
 		config := textlogger.NewConfig(
 			textlogger.Verbosity(v),
@@ -65,6 +63,7 @@ func TestTextloggerOutput(t *testing.T) {
 
 // TestZaprOutput tests the zapr, directly and as backend.
 func TestZaprOutput(t *testing.T) {
+	test.InitKlog(t)
 	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
 		return newZaprLogger(out, v)
 	}
@@ -78,6 +77,7 @@ func TestZaprOutput(t *testing.T) {
 
 // TestKlogrOutput tests klogr output via klog.
 func TestKlogrOutput(t *testing.T) {
+	test.InitKlog(t)
 	test.Output(t, test.OutputConfig{
 		NewLogger: func(out io.Writer, v int, vmodule string) logr.Logger {
 			return klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog))
@@ -87,6 +87,7 @@ func TestKlogrOutput(t *testing.T) {
 
 // TestKlogrStackText tests klogr.klogr -> klog -> text logger.
 func TestKlogrStackText(t *testing.T) {
+	test.InitKlog(t)
 	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
 		// Backend: text output.
 		config := textlogger.NewConfig(
@@ -110,6 +111,7 @@ func TestKlogrStackText(t *testing.T) {
 // (https://github.com/kubernetes/klog/issues/294) because klogr logging
 // records that.
 func TestKlogrStackZapr(t *testing.T) {
+	test.InitKlog(t)
 	mapping := test.ZaprOutputMappingIndirect()
 
 	// klogr doesn't warn about invalid KVs and just inserts
@@ -150,6 +152,7 @@ func TestKlogrStackZapr(t *testing.T) {
 
 // TestKlogrInternalStackText tests klog.klogr (the simplified version used for contextual logging) -> klog -> text logger.
 func TestKlogrInternalStackText(t *testing.T) {
+	test.InitKlog(t)
 	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
 		// Backend: text output.
 		config := textlogger.NewConfig(
@@ -173,6 +176,7 @@ func TestKlogrInternalStackText(t *testing.T) {
 // (https://github.com/kubernetes/klog/issues/294) because klogr logging
 // records that.
 func TestKlogrInternalStackZapr(t *testing.T) {
+	test.InitKlog(t)
 	mapping := test.ZaprOutputMappingIndirect()
 
 	// klogr doesn't warn about invalid KVs and just inserts

@@ -41,22 +41,38 @@ import (
 	"k8s.io/klog/v2"
 )
 
-// InitKlog must be called once in an init function of a test package to
-// configure klog for testing with Output.
+// InitKlog must be called in a test to configure klog for testing.
+// The previous klog configuration will be restored automatically
+// after the test.
+//
+// The returned flag set has the klog flags registered. It can
+// be used to make further changes to the klog configuration.
 //
 // # Experimental
 //
 // Notice: This function is EXPERIMENTAL and may be changed or removed in a
 // later release.
-func InitKlog() {
+func InitKlog(tb testing.TB) *flag.FlagSet {
+	state := klog.CaptureState()
+	tb.Cleanup(state.Restore)
+
+	expectNoError := func(err error) {
+		if err != nil {
+			tb.Fatalf("unexpected error: %v", err)
+		}
+	}
+
 	// klog gets configured so that it writes to a single output file that
 	// will be set during tests with SetOutput.
-	klog.InitFlags(nil)
-	flag.Set("v", "10")
-	flag.Set("log_file", "/dev/null")
-	flag.Set("logtostderr", "false")
-	flag.Set("alsologtostderr", "false")
-	flag.Set("stderrthreshold", "10")
+	var fs flag.FlagSet
+	klog.InitFlags(&fs)
+	expectNoError(fs.Set("v", "10"))
+	expectNoError(fs.Set("log_file", "/dev/null"))
+	expectNoError(fs.Set("logtostderr", "false"))
+	expectNoError(fs.Set("alsologtostderr", "false"))
+	expectNoError(fs.Set("stderrthreshold", "10"))
+
+	return &fs
 }
 
 // OutputConfig contains optional settings for Output.
