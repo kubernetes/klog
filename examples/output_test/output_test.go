@@ -34,33 +34,6 @@ import (
 	"k8s.io/klog/v2/textlogger"
 )
 
-// TestKlogOutput tests klog output without a logger.
-func TestKlogOutput(t *testing.T) {
-	test.InitKlog(t)
-	test.Output(t, test.OutputConfig{})
-}
-
-// TestTextloggerOutput tests the textlogger, directly and as backend.
-func TestTextloggerOutput(t *testing.T) {
-	test.InitKlog(t)
-	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
-		config := textlogger.NewConfig(
-			textlogger.Verbosity(v),
-			textlogger.Output(out),
-		)
-		if err := config.VModule().Set(vmodule); err != nil {
-			panic(err)
-		}
-		return textlogger.NewLogger(config)
-	}
-	t.Run("direct", func(t *testing.T) {
-		test.Output(t, test.OutputConfig{NewLogger: newLogger, SupportsVModule: true})
-	})
-	t.Run("klog-backend", func(t *testing.T) {
-		test.Output(t, test.OutputConfig{NewLogger: newLogger, AsBackend: true})
-	})
-}
-
 // TestZaprOutput tests the zapr, directly and as backend.
 func TestZaprOutput(t *testing.T) {
 	test.InitKlog(t)
@@ -72,16 +45,6 @@ func TestZaprOutput(t *testing.T) {
 	})
 	t.Run("klog-backend", func(t *testing.T) {
 		test.Output(t, test.OutputConfig{NewLogger: newLogger, AsBackend: true, ExpectedOutputMapping: test.ZaprOutputMappingIndirect()})
-	})
-}
-
-// TestKlogrOutput tests klogr output via klog.
-func TestKlogrOutput(t *testing.T) {
-	test.InitKlog(t)
-	test.Output(t, test.OutputConfig{
-		NewLogger: func(out io.Writer, v int, vmodule string) logr.Logger {
-			return klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog))
-		},
 	})
 }
 
