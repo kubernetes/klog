@@ -56,19 +56,17 @@ var (
 // later release. The behavior of the returned Logger may change.
 func NewLogger(c *Config) logr.Logger {
 	return logr.New(&tlogger{
-		prefix:      "",
-		values:      nil,
-		config:      c,
-		bufferCache: &buffer.Buffers{},
+		prefix: "",
+		values: nil,
+		config: c,
 	})
 }
 
 type tlogger struct {
-	callDepth   int
-	prefix      string
-	values      []interface{}
-	config      *Config
-	bufferCache *buffer.Buffers
+	callDepth int
+	prefix    string
+	values    []interface{}
+	config    *Config
 }
 
 func copySlice(in []interface{}) []interface{} {
@@ -103,7 +101,8 @@ func (l *tlogger) Error(err error, msg string, kvList ...interface{}) {
 
 func (l *tlogger) print(err error, s severity.Severity, msg string, kvList []interface{}) {
 	// Only create a new buffer if we don't have one cached.
-	b := l.bufferCache.GetBuffer()
+	b := buffer.GetBuffer()
+	defer buffer.PutBuffer(b)
 
 	// Determine caller.
 	// +1 for this frame, +1 for Info/Error.

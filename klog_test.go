@@ -623,7 +623,7 @@ func TestLogBacktraceAt(t *testing.T) {
 func BenchmarkHeader(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buf, _, _ := logging.header(severity.InfoLog, 0)
-		logging.bufferCache.PutBuffer(buf)
+		buffer.PutBuffer(buf)
 	}
 }
 
@@ -631,7 +631,7 @@ func BenchmarkHeaderWithDir(b *testing.B) {
 	logging.addDirHeader = true
 	for i := 0; i < b.N; i++ {
 		buf, _, _ := logging.header(severity.InfoLog, 0)
-		logging.bufferCache.PutBuffer(buf)
+		buffer.PutBuffer(buf)
 	}
 }
 
