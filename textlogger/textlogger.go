@@ -69,12 +69,6 @@ type tlogger struct {
 	config    *Config
 }
 
-func copySlice(in []interface{}) []interface{} {
-	out := make([]interface{}, len(in))
-	copy(out, in)
-	return out
-}
-
 func (l *tlogger) Init(info logr.RuntimeInfo) {
 	l.callDepth = info.CallDepth
 }
