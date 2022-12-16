@@ -125,10 +125,9 @@ func (l *tlogger) print(err error, s severity.Severity, msg string, kvList []int
 	// message and put the multi-line output into a value.
 	b.WriteString(strconv.Quote(msg))
 	if err != nil {
-		serialize.KVListFormat(&b.Buffer, "err", err)
+		serialize.KVFormat(&b.Buffer, "err", err)
 	}
-	merged := serialize.MergeKVs(l.values, kvList)
-	serialize.KVListFormat(&b.Buffer, merged...)
+	serialize.MergeAndFormatKVs(&b.Buffer, l.values, kvList)
 	if b.Len() == 0 || b.Bytes()[b.Len()-1] != '\n' {
 		b.WriteByte('\n')
 	}

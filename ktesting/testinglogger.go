@@ -319,8 +319,7 @@ func (l tlogger) Info(level int, msg string, kvList ...interface{}) {
 
 	l.shared.t.Helper()
 	buffer := &bytes.Buffer{}
-	merged := serialize.MergeKVs(l.values, kvList)
-	serialize.KVListFormat(buffer, merged...)
+	serialize.MergeAndFormatKVs(buffer, l.values, kvList)
 	l.log(LogInfo, msg, level, buffer, nil, kvList)
 }
 
@@ -339,10 +338,9 @@ func (l tlogger) Error(err error, msg string, kvList ...interface{}) {
 	l.shared.t.Helper()
 	buffer := &bytes.Buffer{}
 	if err != nil {
-		serialize.KVListFormat(buffer, "err", err)
+		serialize.KVFormat(buffer, "err", err)
 	}
-	merged := serialize.MergeKVs(l.values, kvList)
-	serialize.KVListFormat(buffer, merged...)
+	serialize.MergeAndFormatKVs(buffer, l.values, kvList)
 	l.log(LogError, msg, 0, buffer, err, kvList)
 }
 
