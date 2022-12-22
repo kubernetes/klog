@@ -24,6 +24,10 @@ import (
 	"github.com/go-logr/logr"
 )
 
+type textWriter interface {
+	WriteText(*bytes.Buffer)
+}
+
 // WithValues implements LogSink.WithValues. The old key/value pairs are
 // assumed to be well-formed, the new ones are checked and padded if
 // necessary. It returns a new slice.
@@ -175,6 +179,8 @@ func KVFormat(b *bytes.Buffer, k, v interface{}) {
 	// than plain strings
 	// (https://github.com/kubernetes/kubernetes/pull/106594#issuecomment-975526235).
 	switch v := v.(type) {
+	case textWriter:
+		writeTextWriterValue(b, v)
 	case fmt.Stringer:
 		writeStringValue(b, true, StringerToString(v))
 	case string:
@@ -252,6 +258,16 @@ func ErrorToString(err error) (ret string) {
 	}()
 	ret = err.Error()
 	return
+}
+
+func writeTextWriterValue(b *bytes.Buffer, v textWriter) {
+	b.WriteRune('=')
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Fprintf(b, `"<panic: %s>"`, err)
+		}
+	}()
+	v.WriteText(b)
 }
 
 func writeStringValue(b *bytes.Buffer, quote bool, v string) {

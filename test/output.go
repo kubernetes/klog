@@ -290,14 +290,14 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 				&kmeta{Name: "pod-1", Namespace: "kube-system"},
 				&kmeta{Name: "pod-2", Namespace: "kube-system"},
 			})},
-		expectedOutput: `I output.go:<LINE>] "test" pods="[kube-system/pod-1 kube-system/pod-2]"
+		expectedOutput: `I output.go:<LINE>] "test" pods=[kube-system/pod-1 kube-system/pod-2]
 `,
 	},
 	"KObjSlice nil arg": {
 		text: "test",
 		values: []interface{}{"pods",
 			klog.KObjSlice(nil)},
-		expectedOutput: `I output.go:<LINE>] "test" pods="[]"
+		expectedOutput: `I output.go:<LINE>] "test" pods=[]
 `,
 	},
 	"KObjSlice int arg": {
@@ -314,14 +314,14 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 				&kmeta{Name: "pod-1", Namespace: "kube-system"},
 				nil,
 			})},
-		expectedOutput: `I output.go:<LINE>] "test" pods="[kube-system/pod-1 <nil>]"
+		expectedOutput: `I output.go:<LINE>] "test" pods=[kube-system/pod-1 <nil>]
 `,
 	},
 	"KObjSlice ints": {
 		text: "test",
 		values: []interface{}{"ints",
 			klog.KObjSlice([]int{1, 2, 3})},
-		expectedOutput: `I output.go:<LINE>] "test" ints="<KObjSlice needs a slice of values implementing KMetadata, got type int>"
+		expectedOutput: `I output.go:<LINE>] "test" ints=[<KObjSlice needs a slice of values implementing KMetadata, got type int>]
 `,
 	},
 	"regular error types as value": {
@@ -357,7 +357,7 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 	"MarshalLog() for nil": {
 		text:   "marshaler nil",
 		values: []interface{}{"obj", (*klog.ObjectRef)(nil)},
-		expectedOutput: `I output.go:<LINE>] "marshaler nil" obj="<panic: value method k8s.io/klog/v2.ObjectRef.String called using nil *ObjectRef pointer>"
+		expectedOutput: `I output.go:<LINE>] "marshaler nil" obj="<panic: value method k8s.io/klog/v2.ObjectRef.WriteText called using nil *ObjectRef pointer>"
 `,
 	},
 	"Error() that panics": {
