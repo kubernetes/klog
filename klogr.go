@@ -42,7 +42,7 @@ func (l *klogger) Init(info logr.RuntimeInfo) {
 	l.callDepth += info.CallDepth
 }
 
-func (l klogger) Info(level int, msg string, kvList ...interface{}) {
+func (l *klogger) Info(level int, msg string, kvList ...interface{}) {
 	merged := serialize.MergeKVs(l.values, kvList)
 	if l.prefix != "" {
 		msg = l.prefix + ": " + msg
@@ -50,11 +50,11 @@ func (l klogger) Info(level int, msg string, kvList ...interface{}) {
 	V(Level(level)).InfoSDepth(l.callDepth+1, msg, merged...)
 }
 
-func (l klogger) Enabled(level int) bool {
+func (l *klogger) Enabled(level int) bool {
 	return V(Level(level)).Enabled()
 }
 
-func (l klogger) Error(err error, msg string, kvList ...interface{}) {
+func (l *klogger) Error(err error, msg string, kvList ...interface{}) {
 	merged := serialize.MergeKVs(l.values, kvList)
 	if l.prefix != "" {
 		msg = l.prefix + ": " + msg

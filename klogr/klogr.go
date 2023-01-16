@@ -119,7 +119,7 @@ func pretty(value interface{}) string {
 	return strings.TrimSpace(string(buffer.Bytes()))
 }
 
-func (l klogger) Info(level int, msg string, kvList ...interface{}) {
+func (l *klogger) Info(level int, msg string, kvList ...interface{}) {
 	switch l.format {
 	case FormatSerialize:
 		msgStr := flatten("msg", msg)
@@ -135,11 +135,11 @@ func (l klogger) Info(level int, msg string, kvList ...interface{}) {
 	}
 }
 
-func (l klogger) Enabled(level int) bool {
+func (l *klogger) Enabled(level int) bool {
 	return klog.V(klog.Level(level)).Enabled()
 }
 
-func (l klogger) Error(err error, msg string, kvList ...interface{}) {
+func (l *klogger) Error(err error, msg string, kvList ...interface{}) {
 	msgStr := flatten("msg", msg)
 	var loggableErr interface{}
 	if err != nil {
