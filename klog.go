@@ -1313,6 +1313,13 @@ func newVerbose(level Level, b bool) Verbose {
 // less than or equal to the value of the -vmodule pattern matching the source file
 // containing the call.
 func V(level Level) Verbose {
+	return VDepth(1, level)
+}
+
+// VDepth is a variant of V that accepts a number of stack frames that will be
+// skipped when checking the -vmodule patterns. VDepth(0) is equivalent to
+// V().
+func VDepth(depth int, level Level) Verbose {
 	// This function tries hard to be cheap unless there's work to do.
 	// The fast path is two atomic loads and compares.
 
@@ -1329,7 +1336,7 @@ func V(level Level) Verbose {
 		// but if V logging is enabled we're slow anyway.
 		logging.mu.Lock()
 		defer logging.mu.Unlock()
-		if runtime.Callers(2, logging.pcs[:]) == 0 {
+		if runtime.Callers(2+depth, logging.pcs[:]) == 0 {
 			return newVerbose(level, false)
 		}
 		// runtime.Callers returns "return PCs", but we want

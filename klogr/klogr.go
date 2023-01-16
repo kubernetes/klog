@@ -125,18 +125,19 @@ func (l *klogger) Info(level int, msg string, kvList ...interface{}) {
 		msgStr := flatten("msg", msg)
 		merged := serialize.MergeKVs(l.values, kvList)
 		kvStr := flatten(merged...)
-		klog.V(klog.Level(level)).InfoDepth(l.callDepth+1, l.prefix, " ", msgStr, " ", kvStr)
+		klog.VDepth(l.callDepth+1, klog.Level(level)).InfoDepth(l.callDepth+1, l.prefix, " ", msgStr, " ", kvStr)
 	case FormatKlog:
 		merged := serialize.MergeKVs(l.values, kvList)
 		if l.prefix != "" {
 			msg = l.prefix + ": " + msg
 		}
-		klog.V(klog.Level(level)).InfoSDepth(l.callDepth+1, msg, merged...)
+		klog.VDepth(l.callDepth+1, klog.Level(level)).InfoSDepth(l.callDepth+1, msg, merged...)
 	}
 }
 
 func (l *klogger) Enabled(level int) bool {
-	return klog.V(klog.Level(level)).Enabled()
+	// Skip this function and logr.Logger.Info where Enabled is called.
+	return klog.VDepth(l.callDepth+2, klog.Level(level)).Enabled()
 }
 
 func (l *klogger) Error(err error, msg string, kvList ...interface{}) {
