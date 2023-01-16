@@ -88,7 +88,9 @@ func (l *tlogger) WithCallDepth(depth int) logr.LogSink {
 }
 
 func (l *tlogger) Enabled(level int) bool {
-	return l.config.Enabled(verbosity.Level(level), 1)
+	// Skip this function and the Logger.Info call, then
+	// also any additional stack frames from WithCallDepth.
+	return l.config.Enabled(verbosity.Level(level), 2+l.callDepth)
 }
 
 func (l *tlogger) Info(level int, msg string, kvList ...interface{}) {
