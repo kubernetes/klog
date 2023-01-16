@@ -153,11 +153,27 @@ var tests = map[string]testcase{
 		text:    "v=11: you see me because of -vmodule output=11",
 		v:       11,
 		vmodule: "output=11",
+		expectedOutput: `I output.go:<LINE>] "v=11: you see me because of -vmodule output=11"
+`,
 	},
 	"other vmodule": {
 		text:    "v=11: you still don't see me because of -vmodule output_helper=11",
 		v:       11,
 		vmodule: "output_helper=11",
+	},
+	"vmodule with helper": {
+		text:       "v=11: you see me because of -vmodule output=11",
+		withHelper: true,
+		v:          11,
+		vmodule:    "output=11",
+		expectedOutput: `I output.go:<LINE>] "v=11: you see me because of -vmodule output=11"
+`,
+	},
+	"other vmodule with helper": {
+		text:       "v=11: you still don't see me because of -vmodule output_helper=11",
+		withHelper: true,
+		v:          11,
+		vmodule:    "output_helper=11",
 	},
 	"log with name and values": {
 		withNames: []string{"me"},
@@ -410,7 +426,7 @@ func printWithLogger(logger logr.Logger, test testcase) {
 	}
 	for _, logger := range loggers {
 		if test.withHelper {
-			loggerHelper(logger, test.text, test.values) // <LINE>
+			loggerHelper(logger.V(test.v), test.text, test.values) // <LINE>
 		} else if test.err != nil {
 			logger.Error(test.err, test.text, test.values...) // <LINE>
 		} else {
@@ -480,7 +496,7 @@ func printWithKlog(test testcase) {
 			text = strings.Join(test.withNames, "/") + ": " + text
 		}
 		if test.withHelper {
-			klogHelper(text, kv)
+			klogHelper(klog.Level(test.v), text, kv)
 		} else if test.err != nil {
 			klog.ErrorS(test.err, text, kv...)
 		} else {
@@ -510,7 +526,7 @@ var _, _, printWithKlogLine, _ = runtime.Caller(0) // anchor for finding the lin
 func Output(t *testing.T, config OutputConfig) {
 	for n, test := range tests {
 		t.Run(n, func(t *testing.T) {
-			defer klog.ClearLogger()
+			initPrintWithKlog(t, test)
 
 			testOutput := func(t *testing.T, expectedLine int, print func(buffer *bytes.Buffer)) {
 				var tmpWriteBuffer bytes.Buffer
@@ -561,7 +577,7 @@ func Output(t *testing.T, config OutputConfig) {
 
 			if config.AsBackend {
 				testOutput(t, printWithKlogLine-1, func(buffer *bytes.Buffer) {
-					klog.SetLogger(config.NewLogger(buffer, 10, ""))
+					klog.SetLogger(config.NewLogger(buffer, 10, test.vmodule))
 					printWithKlog(test)
 				})
 				return
