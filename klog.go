@@ -1700,3 +1700,11 @@ type LogFilter interface {
 func SetLogFilter(filter LogFilter) {
 	logging.filter = filter
 }
+
+// SetOneOutput sets whether to only write logs to their native severity level
+func SetOneOutput(oneOutput bool) {
+	logging.mu.Lock()
+	defer logging.mu.Unlock()
+
+	logging.oneOutput = oneOutput
+}

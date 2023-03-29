@@ -2214,3 +2214,26 @@ func TestSettingsDeepCopy(t *testing.T) {
 		t.Fatal("Copy should not have shared vmodule.filter.")
 	}
 }
+
+// Test the SetOneOutput(bool) function can programatically set that
+// logs are only written to their native severity level.
+func TestSetOneOutput(t *testing.T) {
+	defer CaptureState().Restore()
+	setFlags()
+	SetOneOutput(true)
+	defer logging.swap(logging.newBuffers())
+	Error("test")
+	if !contains(severity.ErrorLog, "E", t) {
+		t.Errorf("Error has wrong character: %q", contents(severity.ErrorLog))
+	}
+	if !contains(severity.ErrorLog, "test", t) {
+		t.Error("Error failed")
+	}
+	str := contents(severity.ErrorLog)
+	if contains(severity.WarningLog, str, t) {
+		t.Error("Warning failed")
+	}
+	if contains(severity.InfoLog, str, t) {
+		t.Error("Info failed")
+	}
+}
