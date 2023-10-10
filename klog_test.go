@@ -325,7 +325,7 @@ func TestV(t *testing.T) {
 	defer CaptureState().Restore()
 	setFlags()
 	defer logging.swap(logging.newBuffers())
-	logging.verbosity.Set("2")
+	SetVerbosity(2)
 	V(2).Info("test")
 	if !contains(severity.InfoLog, "I", t) {
 		t.Errorf("Info has wrong character: %q", contents(severity.InfoLog))

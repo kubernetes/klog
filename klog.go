@@ -438,6 +438,11 @@ func InitFlags(flagset *flag.FlagSet) {
 	})
 }
 
+// SetVerbosity set log level through function.
+func SetVerbosity(level Level) {
+	logging.verbosity = level
+}
+
 // Flush flushes all pending log I/O.
 func Flush() {
 	logging.lockAndFlushAll()
