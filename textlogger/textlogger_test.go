@@ -75,3 +75,36 @@ func ExampleNewLogger() {
 func someHelper(logger klog.Logger, msg string) {
 	logger.WithCallDepth(1).Info(msg)
 }
+
+func ExampleBacktrace() {
+	ts, _ := time.Parse(time.RFC3339, "2000-12-24T12:30:40Z")
+	internal.Pid = 123 // To get consistent output for each run.
+	backtraceCounter := 0
+	config := textlogger.NewConfig(
+		textlogger.FixedTime(ts), // To get consistent output for each run.
+		textlogger.Backtrace(func(skip int) (filename string, line int) {
+			backtraceCounter++
+			if backtraceCounter == 1 {
+				// Simulate "missing information".
+				return "", 0
+			}
+			return "fake.go", 42
+
+			// A real implementation could use Ginkgo:
+			//
+			// import ginkgotypes "github.com/onsi/ginkgo/v2/types"
+			//
+			// location := ginkgotypes.NewCodeLocation(skip + 1)
+			// return location.FileName, location.LineNumber
+		}),
+		textlogger.Output(os.Stdout),
+	)
+	logger := textlogger.NewLogger(config)
+
+	logger.Info("First message")
+	logger.Info("Second message")
+
+	// Output:
+	// I1224 12:30:40.000000     123 ???:1] "First message"
+	// I1224 12:30:40.000000     123 fake.go:42] "Second message"
+}
