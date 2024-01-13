@@ -148,9 +148,10 @@ func (buf *Buffer) FormatHeader(s severity.Severity, file string, line int, now 
 	buf.WriteString(file)
 	buf.Tmp[0] = ':'
 	n := buf.someDigits(1, line)
-	buf.Tmp[n+1] = ']'
-	buf.Tmp[n+2] = ' '
-	buf.Write(buf.Tmp[:n+3])
+	buf.Tmp[n+1] = ' '
+	buf.Tmp[n+2] = ']'
+	buf.Tmp[n+3] = ' '
+	buf.Write(buf.Tmp[:n+4])
 }
 
 // SprintHeader formats a log header and returns a string. This is a simpler
