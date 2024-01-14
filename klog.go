@@ -427,6 +427,7 @@ func init() {
 	commandLine.Var(&logging.verbosity, "v", "number for the log level verbosity")
 	commandLine.BoolVar(&logging.addDirHeader, "add_dir_header", false, "If true, adds the file directory to the header of the log messages")
 	commandLine.BoolVar(&logging.skipHeaders, "skip_headers", false, "If true, avoid header prefixes in the log messages")
+	commandLine.BoolVar(&logging.hyperlinkHeaders, "hyperlink_headers", false, "If true, will add a space before and after 'filename:line number'. GoLand/VSCode will recognize it as a hyperlink")
 	commandLine.BoolVar(&logging.oneOutput, "one_output", false, "If true, only write logs to their native severity level (vs also writing to each lower severity level; no effect when -logtostderr=true)")
 	commandLine.BoolVar(&logging.skipLogHeaders, "skip_log_headers", false, "If true, avoid headers when opening log files (no effect when -logtostderr=true)")
 	logging.stderrThreshold = severityValue{
@@ -516,6 +517,9 @@ type settings struct {
 
 	// If true, do not add the prefix headers, useful when used with SetOutput
 	skipHeaders bool
+
+	// If true, will add a space before and after 'filename:line number'. GoLand/VSCode will recognize it as a hyperlink
+	hyperlinkHeaders bool
 
 	// If true, do not add the headers to log files
 	skipLogHeaders bool
@@ -679,6 +683,10 @@ func (l *loggingT) header(s severity.Severity, depth int) (*buffer.Buffer, strin
 func (l *loggingT) formatHeader(s severity.Severity, file string, line int, now time.Time) *buffer.Buffer {
 	buf := buffer.GetBuffer()
 	if l.skipHeaders {
+		return buf
+	}
+	if l.hyperlinkHeaders {
+		buf.FormatHeaderWithSpace(s, file, line, now)
 		return buf
 	}
 	buf.FormatHeader(s, file, line, now)

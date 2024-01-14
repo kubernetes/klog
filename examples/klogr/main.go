@@ -19,6 +19,7 @@ func (e myError) Error() string {
 func main() {
 	klog.InitFlags(nil)
 	require.NoError(flag.Set("v", "3"))
+	require.NoError(flag.Set("hyperlink_headers", "true"))
 	flag.Parse()
 	log := klogr.New().WithName("MyName").WithValues("user", "you")
 	log.Info("hello", "val1", 1, "val2", map[string]int{"k": 1})

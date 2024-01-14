@@ -115,6 +115,22 @@ func (buf *Buffer) someDigits(i, d int) int {
 // FormatHeader formats a log header using the provided file name and line number
 // and writes it into the buffer.
 func (buf *Buffer) FormatHeader(s severity.Severity, file string, line int, now time.Time) {
+	n := buf.FormatHeaderPre(s, file, line, now)
+	buf.Tmp[n+1] = ']'
+	buf.Tmp[n+2] = ' '
+	buf.Write(buf.Tmp[:n+3])
+}
+
+// FormatHeaderWithSpace add a space before and after 'filename:line number'. GoLand/VSCode will recognize it as a hyperlink
+func (buf *Buffer) FormatHeaderWithSpace(s severity.Severity, file string, line int, now time.Time) {
+	n := buf.FormatHeaderPre(s, file, line, now)
+	buf.Tmp[n+1] = ' '
+	buf.Tmp[n+2] = ']'
+	buf.Tmp[n+3] = ' '
+	buf.Write(buf.Tmp[:n+4])
+}
+
+func (buf *Buffer) FormatHeaderPre(s severity.Severity, file string, line int, now time.Time) int {
 	if line < 0 {
 		line = 0 // not a real line number, but acceptable to someDigits
 	}
@@ -148,10 +164,7 @@ func (buf *Buffer) FormatHeader(s severity.Severity, file string, line int, now 
 	buf.WriteString(file)
 	buf.Tmp[0] = ':'
 	n := buf.someDigits(1, line)
-	buf.Tmp[n+1] = ' '
-	buf.Tmp[n+2] = ']'
-	buf.Tmp[n+3] = ' '
-	buf.Write(buf.Tmp[:n+4])
+	return n
 }
 
 // SprintHeader formats a log header and returns a string. This is a simpler
