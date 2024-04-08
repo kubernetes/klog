@@ -546,7 +546,8 @@ func TestOpenAppendOnStart(t *testing.T) {
 	}
 
 	// ensure we wrote what we expected
-	logging.flushAll()
+	files := logging.flushAll()
+	logging.syncAll(files)
 	b, err := ioutil.ReadFile(logging.logFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -817,7 +818,8 @@ func BenchmarkLogs(b *testing.B) {
 		Warning("warning")
 		Info("info")
 	}
-	logging.flushAll()
+	files := logging.flushAll()
+	logging.syncAll(files)
 }
 
 // Test the logic on checking log size limitation.
