@@ -112,7 +112,7 @@ func TestKlogrStackZapr(t *testing.T) {
 		mapping[key] = value
 	}
 
-	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
+	newLogger := func(out io.Writer, v int, _ string) logr.Logger {
 		// Backend: zapr as configured in k8s.io/component-base/logs/json.
 		klog.SetLogger(newZaprLogger(out, v))
 
@@ -177,7 +177,7 @@ func TestKlogrInternalStackZapr(t *testing.T) {
 		mapping[key] = value
 	}
 
-	newLogger := func(out io.Writer, v int, vmodule string) logr.Logger {
+	newLogger := func(out io.Writer, v int, _ string) logr.Logger {
 		// Backend: zapr as configured in k8s.io/component-base/logs/json.
 		klog.SetLogger(newZaprLogger(out, v))
 
