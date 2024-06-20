@@ -21,6 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	stdLog "log"
 	"os"
@@ -73,7 +74,7 @@ func (f *flushBuffer) Sync() error {
 }
 
 // swap sets the log writers and returns the old array.
-func (l *loggingT) swap(writers [severity.NumSeverity]flushSyncWriter) (old [severity.NumSeverity]flushSyncWriter) {
+func (l *loggingT) swap(writers [severity.NumSeverity]io.Writer) (old [severity.NumSeverity]io.Writer) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	old = l.file
@@ -82,8 +83,8 @@ func (l *loggingT) swap(writers [severity.NumSeverity]flushSyncWriter) (old [sev
 }
 
 // newBuffers sets the log writers to all new byte buffers and returns the old array.
-func (l *loggingT) newBuffers() [severity.NumSeverity]flushSyncWriter {
-	return l.swap([severity.NumSeverity]flushSyncWriter{new(flushBuffer), new(flushBuffer), new(flushBuffer), new(flushBuffer)})
+func (l *loggingT) newBuffers() [severity.NumSeverity]io.Writer {
+	return l.swap([severity.NumSeverity]io.Writer{new(flushBuffer), new(flushBuffer), new(flushBuffer), new(flushBuffer)})
 }
 
 // contents returns the specified log value as a string.
@@ -540,14 +541,17 @@ func TestOpenAppendOnStart(t *testing.T) {
 
 	// Logging creates the file
 	Info(x)
-	_, ok := logging.file[severity.InfoLog].(*syncBuffer)
+	sb, ok := logging.file[severity.InfoLog].(*syncBuffer)
 	if !ok {
 		t.Fatal("info wasn't created")
 	}
 
 	// ensure we wrote what we expected
-	files := logging.flushAll()
-	logging.syncAll(files)
+	needToSync := logging.flushAll()
+	if needToSync.num != 1 || needToSync.files[0] != sb.file {
+		t.Errorf("Should have received exactly the file from severity.InfoLog for syncing, got instead: %+v", needToSync)
+	}
+	logging.syncAll(needToSync)
 	b, err := ioutil.ReadFile(logging.logFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -811,15 +815,58 @@ func BenchmarkLogs(b *testing.B) {
 		Severity: severity.FatalLog,
 	}
 	logging.logFile = testFile.Name()
-	logging.swap([severity.NumSeverity]flushSyncWriter{nil, nil, nil, nil})
+	logging.swap([severity.NumSeverity]io.Writer{nil, nil, nil, nil})
 
 	for i := 0; i < b.N; i++ {
 		Error("error")
 		Warning("warning")
 		Info("info")
 	}
-	files := logging.flushAll()
-	logging.syncAll(files)
+	needToSync := logging.flushAll()
+	sb, ok := logging.file[severity.InfoLog].(*syncBuffer)
+	if !ok {
+		b.Fatal("info wasn't created")
+	}
+	if needToSync.num != 1 || needToSync.files[0] != sb.file {
+		b.Fatalf("Should have received exactly the file from severity.InfoLog for syncing, got instead: %+v", needToSync)
+	}
+	logging.syncAll(needToSync)
+}
+
+func BenchmarkFlush(b *testing.B) {
+	defer CaptureState().Restore()
+	setFlags()
+	defer logging.swap(logging.newBuffers())
+
+	testFile, err := ioutil.TempFile("", "test.log")
+	if err != nil {
+		b.Fatal("unable to create temporary file")
+	}
+	defer os.Remove(testFile.Name())
+
+	require.NoError(b, logging.verbosity.Set("0"))
+	logging.toStderr = false
+	logging.alsoToStderr = false
+	logging.stderrThreshold = severityValue{
+		Severity: severity.FatalLog,
+	}
+	logging.logFile = testFile.Name()
+	logging.swap([severity.NumSeverity]io.Writer{nil, nil, nil, nil})
+
+	// Create output file.
+	Info("info")
+	needToSync := logging.flushAll()
+
+	if needToSync.num != 1 {
+		b.Fatalf("expected exactly one file to sync, got: %+v", needToSync)
+	}
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		needToSync := logging.flushAll()
+		logging.syncAll(needToSync)
+	}
 }
 
 // Test the logic on checking log size limitation.
