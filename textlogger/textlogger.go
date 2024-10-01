@@ -114,6 +114,13 @@ func runtimeBacktrace(skip int) (string, int) {
 }
 
 func (l *tlogger) printWithInfos(file string, line int, now time.Time, err error, s severity.Severity, msg string, kvList []interface{}) {
+	// The message is always quoted, even if it contains line breaks.
+	// If developers want multi-line output, they should use a small, fixed
+	// message and put the multi-line output into a value.
+	qMsgArr := [1024]byte{}
+	qMsg := qMsgArr[:0]
+	qMsg = strconv.AppendQuote(qMsg, msg)
+
 	// Only create a new buffer if we don't have one cached.
 	b := buffer.GetBuffer()
 	defer buffer.PutBuffer(b)
@@ -124,10 +131,8 @@ func (l *tlogger) printWithInfos(file string, line int, now time.Time, err error
 	}
 	b.FormatHeader(s, file, line, now)
 
-	// The message is always quoted, even if it contains line breaks.
-	// If developers want multi-line output, they should use a small, fixed
-	// message and put the multi-line output into a value.
-	b.WriteString(strconv.Quote(msg))
+	b.Write(qMsg)
+
 	if err != nil {
 		serialize.KVFormat(&b.Buffer, "err", err)
 	}
