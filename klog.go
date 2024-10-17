@@ -809,12 +809,16 @@ func (l *loggingT) infoS(logger *logWriter, filter LogFilter, depth int, msg str
 // printS is called from infoS and errorS if logger is not specified.
 // set log severity by s
 func (l *loggingT) printS(err error, s severity.Severity, depth int, msg string, keysAndValues ...interface{}) {
-	// Only create a new buffer if we don't have one cached.
-	b := buffer.GetBuffer()
 	// The message is always quoted, even if it contains line breaks.
 	// If developers want multi-line output, they should use a small, fixed
 	// message and put the multi-line output into a value.
-	b.WriteString(strconv.Quote(msg))
+	qMsg := make([]byte, 0, 1024)
+	qMsg = strconv.AppendQuote(qMsg, msg)
+
+	// Only create a new buffer if we don't have one cached.
+	b := buffer.GetBuffer()
+	b.Write(qMsg)
+
 	if err != nil {
 		serialize.KVListFormat(&b.Buffer, "err", err)
 	}
