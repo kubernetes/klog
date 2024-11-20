@@ -19,6 +19,7 @@ package test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -424,6 +425,32 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 		text:   "cycle",
 		values: []interface{}{"list", newCyclicList()},
 		expectedOutput: `I output.go:<LINE>] "cycle" list="<internal error: json: unsupported value: encountered a cycle via *test.myList>"
+`,
+	},
+	"duplicates": {
+		withValues:     []interface{}{"trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("0102030405060708")},
+		moreValues:     []interface{}{"trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("1112131415161718")},
+		evenMoreValues: []interface{}{"trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("2122232425262728")},
+		text:           "duplicates",
+
+		// No de-duplication among WithValues calls at the moment!
+		expectedOutput: `I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728"
+`,
+	},
+	"mixed duplicates": {
+		withValues:     []interface{}{"trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("0102030405060708"), "a", 1},
+		moreValues:     []interface{}{"b", 2, "trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("1112131415161718")},
+		evenMoreValues: []interface{}{"c", 3, "trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("2122232425262728"), "d", 4},
+		text:           "duplicates",
+
+		// No de-duplication among WithValues calls at the moment!
+		expectedOutput: `I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1 b=2 trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1 c=3 trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728" d=4
 `,
 	},
 }
@@ -1021,4 +1048,66 @@ func newCyclicList() *myList {
 	b := &myList{Value: 2, Next: a}
 	a.Next = b
 	return a
+}
+
+// SpanID mimicks https://pkg.go.dev/go.opentelemetry.io/otel/trace#SpanID.
+type SpanID [8]byte
+
+var (
+	_ json.Marshaler = SpanID{}
+	_ fmt.Stringer   = SpanID{}
+)
+
+func (s SpanID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+func (s SpanID) String() string {
+	return hex.EncodeToString(s[:])
+}
+
+func spanIDFromHex(str string) SpanID {
+	decoded, err := hex.DecodeString(str)
+	if err != nil {
+		panic(fmt.Sprintf("invalid hex string %q: %v", str, err))
+	}
+	if len(decoded) != len(SpanID{}) {
+		panic(fmt.Sprintf("invalid length of hex string %q: need %d bytes", str, len(SpanID{})))
+	}
+	var result SpanID
+	for i := range result {
+		result[i] = decoded[i]
+	}
+	return result
+}
+
+// TraceID mimicks https://pkg.go.dev/go.opentelemetry.io/otel/trace#TraceID.
+type TraceID [16]byte
+
+var (
+	_ json.Marshaler = TraceID{}
+	_ fmt.Stringer   = TraceID{}
+)
+
+func (s TraceID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+func (s TraceID) String() string {
+	return hex.EncodeToString(s[:])
+}
+
+func traceIDFromHex(str string) TraceID {
+	decoded, err := hex.DecodeString(str)
+	if err != nil {
+		panic(fmt.Sprintf("invalid hex string %q: %v", str, err))
+	}
+	if len(decoded) != len(TraceID{}) {
+		panic(fmt.Sprintf("invalid length of hex string %q: need %d bytes", str, len(TraceID{})))
+	}
+	var result TraceID
+	for i := range result {
+		result[i] = decoded[i]
+	}
+	return result
 }
