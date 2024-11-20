@@ -178,9 +178,9 @@ var tests = map[string]testcase{
 	},
 	"override single value": {
 		withValues: []interface{}{"akey", "avalue"},
-		text:       "test",
+		text:       "test-with-values",
 		values:     []interface{}{"akey", "avalue2"},
-		expectedOutput: `I output.go:<LINE>] "test" akey="avalue2"
+		expectedOutput: `I output.go:<LINE>] "test-with-values" akey="avalue2"
 `,
 	},
 	"override WithValues": {
@@ -217,9 +217,9 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 `,
 	},
 	"print duplicate keys in arguments": {
-		text:   "test",
+		text:   "test-arguments",
 		values: []interface{}{"akey", "avalue", "akey", "avalue2"},
-		expectedOutput: `I output.go:<LINE>] "test" akey="avalue" akey="avalue2"
+		expectedOutput: `I output.go:<LINE>] "test-arguments" akey="avalue2"
 `,
 	},
 	"preserve order of key/value pairs": {
@@ -433,11 +433,10 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 		evenMoreValues: []interface{}{"trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("2122232425262728")},
 		text:           "duplicates",
 
-		// No de-duplication among WithValues calls at the moment!
 		expectedOutput: `I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708"
-I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
 I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708"
-I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728"
 `,
 	},
 	"mixed duplicates": {
@@ -446,11 +445,10 @@ I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="
 		evenMoreValues: []interface{}{"c", 3, "trace", traceIDFromHex("101112131415161718191A1B1C1D1E1F"), "span", spanIDFromHex("2122232425262728"), "d", 4},
 		text:           "duplicates",
 
-		// No de-duplication among WithValues calls at the moment!
 		expectedOutput: `I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
-I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1 b=2 trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
+I output.go:<LINE>] "duplicates" a=1 b=2 trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
 I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
-I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1 c=3 trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728" d=4
+I output.go:<LINE>] "duplicates" a=1 c=3 trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728" d=4
 `,
 	},
 }
@@ -467,6 +465,7 @@ func printWithLogger(logger logr.Logger, test testcase) {
 	logger = logger.WithValues(test.withValues...) // <WITH-VALUES>
 	loggers := []logr.Logger{logger}
 	if test.moreValues != nil {
+		// Intentionally append the logger again: WithValues must not change what it prints.
 		loggers = append(loggers, logger.WithValues(test.moreValues...), logger) // <WITH-VALUES-2>
 	}
 	if test.evenMoreValues != nil {
@@ -505,22 +504,12 @@ func initPrintWithKlog(tb testing.TB, test testcase) {
 
 func printWithKlog(test testcase) {
 	kv := []interface{}{}
-	haveKeyInValues := func(key interface{}) bool {
-		for i := 0; i < len(test.values); i += 2 {
-			if key == test.values[i] {
-				return true
-			}
-		}
-		return false
-	}
 	appendKV := func(withValues ...interface{}) {
 		if len(withValues)%2 != 0 {
 			withValues = append(withValues, "(MISSING)")
 		}
 		for i := 0; i < len(withValues); i += 2 {
-			if !haveKeyInValues(withValues[i]) {
-				kv = append(kv, withValues[i], withValues[i+1])
-			}
+			kv = append(kv, withValues[i], withValues[i+1])
 		}
 	}
 	// Here we need to emulate the handling of WithValues above.
@@ -597,7 +586,7 @@ func Output(t *testing.T, config OutputConfig) {
 				}
 				expectedWithPlaceholder := expected
 				expected = strings.ReplaceAll(expected, "<LINE>", fmt.Sprintf("%d", callLine))
-				expected = strings.ReplaceAll(expected, "<WITH-VALUES>", fmt.Sprintf("%d", expectedLine-18))
+				expected = strings.ReplaceAll(expected, "<WITH-VALUES>", fmt.Sprintf("%d", expectedLine-19))
 				expected = strings.ReplaceAll(expected, "<WITH-VALUES-2>", fmt.Sprintf("%d", expectedLine-15))
 				expected = strings.ReplaceAll(expected, "<WITH-VALUES-3>", fmt.Sprintf("%d", expectedLine-12))
 				if actual != expected {
