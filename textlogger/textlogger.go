@@ -132,10 +132,11 @@ func (l *tlogger) printWithInfos(file string, line int, now time.Time, err error
 
 	b.Write(qMsg)
 
+	var errKV []interface{}
 	if err != nil {
-		serialize.KVFormat(&b.Buffer, "err", err)
+		errKV = []interface{}{"err", err}
 	}
-	serialize.MergeAndFormatKVs(&b.Buffer, l.values, kvList)
+	serialize.FormatKVs(&b.Buffer, errKV, l.values, kvList)
 	if b.Len() == 0 || b.Bytes()[b.Len()-1] != '\n' {
 		b.WriteByte('\n')
 	}

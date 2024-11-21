@@ -58,35 +58,15 @@ type Formatter struct {
 
 type AnyToStringFunc func(v interface{}) string
 
-// MergeKVsInto is a variant of MergeKVs which directly formats the key/value
-// pairs into a buffer.
-func (f Formatter) MergeAndFormatKVs(b *bytes.Buffer, first, second []interface{}) {
-	f.formatKVs(b, first, second)
-}
-
-func MergeAndFormatKVs(b *bytes.Buffer, first, second []interface{}) {
-	Formatter{}.MergeAndFormatKVs(b, first, second)
-}
-
 const missingValue = "(MISSING)"
 
-// KVListFormat serializes all key/value pairs into the provided buffer.
-// A space gets inserted before the first pair and between each pair.
-func (f Formatter) KVListFormat(b *bytes.Buffer, keysAndValues ...interface{}) {
-	f.formatKVs(b, keysAndValues)
+func FormatKVs(b *bytes.Buffer, kvs ...[]interface{}) {
+	Formatter{}.FormatKVs(b, kvs...)
 }
 
-func KVListFormat(b *bytes.Buffer, keysAndValues ...interface{}) {
-	Formatter{}.KVListFormat(b, keysAndValues...)
-}
-
-func KVFormat(b *bytes.Buffer, k, v interface{}) {
-	Formatter{}.KVFormat(b, k, v)
-}
-
-// formatKVs formats all key/value pairs such that the output contains no
+// FormatKVs formats all key/value pairs such that the output contains no
 // duplicates ("last one wins").
-func (f Formatter) formatKVs(b *bytes.Buffer, kvs ...[]interface{}) {
+func (f Formatter) FormatKVs(b *bytes.Buffer, kvs ...[]interface{}) {
 	// De-duplication is done by optimistically formatting all key value
 	// pairs and then cutting out the output of those key/value pairs which
 	// got overwritten later.

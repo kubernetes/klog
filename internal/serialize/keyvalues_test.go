@@ -184,7 +184,7 @@ No whitespace.`,
 
 	for _, d := range testKVList {
 		b := &bytes.Buffer{}
-		serialize.KVListFormat(b, d.keysValues...)
+		serialize.FormatKVs(b, d.keysValues)
 		if b.String() != d.want {
 			t.Errorf("KVListFormat error:\n got:\n\t%s\nwant:\t%s", b.String(), d.want)
 		}
