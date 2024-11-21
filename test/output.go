@@ -575,9 +575,9 @@ func Output(t *testing.T, config OutputConfig) {
 				expected = strings.ReplaceAll(expected, "<WITH-VALUES-3>", fmt.Sprintf("%d", expectedLine-12))
 				if actual != expected {
 					if expectedWithPlaceholder == test.expectedOutput {
-						t.Errorf("Output mismatch. Expected:\n%s\nActual:\n%s\n", expectedWithPlaceholder, actual)
+						t.Errorf("Output mismatch.\n\nExpected with placeholders:\n%s\nExpected without placeholders:\n%s\nActual:\n%s\n", expectedWithPlaceholder, expected, actual)
 					} else {
-						t.Errorf("Output mismatch. klog:\n%s\nExpected:\n%s\nActual:\n%s\n", test.expectedOutput, expectedWithPlaceholder, actual)
+						t.Errorf("Output mismatch. klog:\n%s\n\nExpected with placeholders:\n%s\nExpected without placeholders:\n%s\nActual:\n%s\n", test.expectedOutput, expectedWithPlaceholder, expected, actual)
 					}
 				}
 			}
@@ -843,9 +843,9 @@ func Output(t *testing.T, config OutputConfig) {
 				expected = strings.ReplaceAll(expected, "<LINE>", fmt.Sprintf("%d", callLine))
 				if actual != expected {
 					if expectedWithPlaceholder == test.output {
-						t.Errorf("Output mismatch. Expected:\n%s\nActual:\n%s\n", expectedWithPlaceholder, actual)
+						t.Errorf("Output mismatch. Expected with placeholders:\n%s\nExpected without placeholders:\n%s\nActual:\n%s\n", expectedWithPlaceholder, expected, actual)
 					} else {
-						t.Errorf("Output mismatch. klog:\n%s\nExpected:\n%s\nActual:\n%s\n", test.output, expectedWithPlaceholder, actual)
+						t.Errorf("Output mismatch. klog:\n%s\nExpected with placeholders:\n%s\nExpected without placeholders:\n%s\nActual:\n%s\n", test.output, expectedWithPlaceholder, expected, actual)
 					}
 				}
 			})
