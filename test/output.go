@@ -543,10 +543,10 @@ func Output(t *testing.T, config OutputConfig) {
 		t.Run(n, func(t *testing.T) {
 			initPrintWithKlog(t, test)
 
-			testOutput := func(t *testing.T, expectedLine int, print func(buffer *bytes.Buffer)) {
+			testOutput := func(t *testing.T, expectedLine int, logToBuffer func(buffer *bytes.Buffer)) {
 				var tmpWriteBuffer bytes.Buffer
 				klog.SetOutput(&tmpWriteBuffer)
-				print(&tmpWriteBuffer)
+				logToBuffer(&tmpWriteBuffer)
 				klog.Flush()
 
 				actual := tmpWriteBuffer.String()
