@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/go-logr/logr"
@@ -115,16 +116,24 @@ func (f Formatter) formatKVs(b *bytes.Buffer, kvs ...[]interface{}) {
 			e.end = b.Len()
 			i := findObsoleteEntry(existing, e.key)
 			if i >= 0 {
-				// The old entry gets obsoleted. This ensures
-				// that if the more recent one has a different value,
-				// that value remains. If the value is the same,
-				// then we could also keep the old entry. That
-				// would lead to a more natural order of key/value
-				// pairs in the output (shared key/value in multiple
-				// log entries always at the beginning) but at the
-				// cost of another memory comparison.
-				obsolete = append(obsolete, existing[i].interval)
-				existing[i].interval = e.interval
+				data := b.Bytes()
+				if bytes.Compare(data[existing[i].start:existing[i].end], data[e.start:e.end]) == 0 {
+					// The new entry gets obsoleted because it's identical.
+					// This has the advantage that key/value pairs from
+					// a WithValues call always come first, even if the same
+					// pair gets added again later. This makes different log
+					// entries more consistent.
+					//
+					// The new entry has a higher start index and thus can be appended.
+					obsolete = append(obsolete, e.interval)
+				} else {
+					// The old entry gets obsoleted because it's value is different.
+					//
+					// Sort order is not guaranteed, we have to insert at the right place.
+					index, _ := slices.BinarySearchFunc(obsolete, existing[i].interval, func(a, b interval) int { return a.start - b.start })
+					obsolete = slices.Insert(obsolete, index, existing[i].interval)
+					existing[i].interval = e.interval
+				}
 			} else {
 				// Instead of appending at the end and doing a
 				// linear search in findEntry, we could keep

@@ -275,9 +275,9 @@ I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="
 `,
 
 		`I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
-I output.go:<LINE>] "duplicates" a=1 b=2 trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" a=1 b=2 span="1112131415161718"
 I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
-I output.go:<LINE>] "duplicates" a=1 c=3 trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728" d=4
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" a=1 c=3 span="2122232425262728" d=4
 `: `{"caller":"test/output.go:<LINE>","msg":"duplicates","trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1,"v":0}
 {"caller":"test/output.go:<LINE>","msg":"duplicates","trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1,"b":2,"trace":"101112131415161718191a1b1c1d1e1f","span":"1112131415161718","v":0}
 {"caller":"test/output.go:<LINE>","msg":"duplicates","trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1,"v":0}
@@ -383,9 +383,9 @@ I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="
 `,
 
 		`I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
-I output.go:<LINE>] "duplicates" a=1 b=2 trace="101112131415161718191a1b1c1d1e1f" span="1112131415161718"
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" a=1 b=2 span="1112131415161718"
 I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" span="0102030405060708" a=1
-I output.go:<LINE>] "duplicates" a=1 c=3 trace="101112131415161718191a1b1c1d1e1f" span="2122232425262728" d=4
+I output.go:<LINE>] "duplicates" trace="101112131415161718191a1b1c1d1e1f" a=1 c=3 span="2122232425262728" d=4
 `: `{"caller":"test/output.go:<LINE>","msg":"duplicates","v":0,"trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1}
 {"caller":"test/output.go:<LINE>","msg":"duplicates","v":0,"trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1,"b":2,"trace":"101112131415161718191a1b1c1d1e1f","span":"1112131415161718"}
 {"caller":"test/output.go:<LINE>","msg":"duplicates","v":0,"trace":"101112131415161718191a1b1c1d1e1f","span":"0102030405060708","a":1}
