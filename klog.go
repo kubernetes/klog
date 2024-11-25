@@ -819,10 +819,11 @@ func (l *loggingT) printS(err error, s severity.Severity, depth int, msg string,
 	b := buffer.GetBuffer()
 	b.Write(qMsg)
 
+	var errKV []interface{}
 	if err != nil {
-		serialize.KVListFormat(&b.Buffer, "err", err)
+		errKV = []interface{}{"err", err}
 	}
-	serialize.KVListFormat(&b.Buffer, keysAndValues...)
+	serialize.FormatKVs(&b.Buffer, errKV, keysAndValues)
 	l.printDepth(s, nil, nil, depth+1, &b.Buffer)
 	// Make the buffer available for reuse.
 	buffer.PutBuffer(b)
