@@ -895,44 +895,46 @@ func (l *loggingT) output(s severity.Severity, logger *logWriter, buf *buffer.Bu
 		if alsoToStderr || l.alsoToStderr || s >= l.stderrThreshold.get() {
 			os.Stderr.Write(data)
 		}
+	}
 
-		if logging.logFile != "" {
-			// Since we are using a single log file, all of the items in l.file array
-			// will point to the same file, so just use one of them to write data.
-			if l.file[severity.InfoLog] == nil {
-				if err := l.createFiles(severity.InfoLog); err != nil {
-					os.Stderr.Write(data) // Make sure the message appears somewhere.
-					l.exit(err)
-				}
+	// Always write to log file if configured
+	if logging.logFile != "" {
+		// Since we are using a single log file, all of the items in l.file array
+		// will point to the same file, so just use one of them to write data.
+		if l.file[severity.InfoLog] == nil {
+			if err := l.createFiles(severity.InfoLog); err != nil {
+				os.Stderr.Write(data) // Make sure the message appears somewhere.
+				l.exit(err)
 			}
-			_, _ = l.file[severity.InfoLog].Write(data)
+		}
+		_, _ = l.file[severity.InfoLog].Write(data)
+	} else {
+		if l.file[s] == nil {
+			if err := l.createFiles(s); err != nil {
+				os.Stderr.Write(data) // Make sure the message appears somewhere.
+				l.exit(err)
+			}
+		}
+
+		if l.oneOutput {
+			_, _ = l.file[s].Write(data)
 		} else {
-			if l.file[s] == nil {
-				if err := l.createFiles(s); err != nil {
-					os.Stderr.Write(data) // Make sure the message appears somewhere.
-					l.exit(err)
-				}
-			}
-
-			if l.oneOutput {
-				_, _ = l.file[s].Write(data)
-			} else {
-				switch s {
-				case severity.FatalLog:
-					_, _ = l.file[severity.FatalLog].Write(data)
-					fallthrough
-				case severity.ErrorLog:
-					_, _ = l.file[severity.ErrorLog].Write(data)
-					fallthrough
-				case severity.WarningLog:
-					_, _ = l.file[severity.WarningLog].Write(data)
-					fallthrough
-				case severity.InfoLog:
-					_, _ = l.file[severity.InfoLog].Write(data)
-				}
+			switch s {
+			case severity.FatalLog:
+				_, _ = l.file[severity.FatalLog].Write(data)
+				fallthrough
+			case severity.ErrorLog:
+				_, _ = l.file[severity.ErrorLog].Write(data)
+				fallthrough
+			case severity.WarningLog:
+				_, _ = l.file[severity.WarningLog].Write(data)
+				fallthrough
+			case severity.InfoLog:
+				_, _ = l.file[severity.InfoLog].Write(data)
 			}
 		}
 	}
+
 	if s == severity.FatalLog {
 		// If we got here via Exit rather than Fatal, print no stacks.
 		if atomic.LoadUint32(&fatalNoStacks) > 0 {
