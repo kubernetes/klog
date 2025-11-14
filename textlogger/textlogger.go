@@ -130,7 +130,7 @@ func (l *tlogger) printWithInfos(file string, line int, now time.Time, err error
 	// message and put the multi-line output into a value.
 	b.Write(
 		strconv.AppendQuote(
-			b.AvailableBuffer(),
+			make([]byte, 0, 1024),
 			msg))
 
 	var errKV []interface{}

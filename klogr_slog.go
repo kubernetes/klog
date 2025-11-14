@@ -66,7 +66,7 @@ func slogOutput(file string, line int, now time.Time, err error, s severity.Seve
 	b := buffer.GetBuffer()
 	b.Write(
 		strconv.AppendQuote(
-			b.AvailableBuffer(),
+			make([]byte, 0, 1024),
 			msg))
 
 	var errKV []interface{}
