@@ -119,19 +119,19 @@ func (l *tlogger) printWithInfos(file string, line int, now time.Time, err error
 	b := buffer.GetBuffer()
 	defer buffer.PutBuffer(b)
 
-	// The message is always quoted, even if it contains line breaks.
-	// If developers want multi-line output, they should use a small, fixed
-	// message and put the multi-line output into a value.
-	qMsg := b.AvailableBuffer()
-	qMsg = strconv.AppendQuote(qMsg, msg)
-
 	// Format header.
 	if l.config.co.fixedTime != nil {
 		now = *l.config.co.fixedTime
 	}
 	b.FormatHeader(s, file, line, now)
 
-	b.Write(qMsg)
+	// The message is always quoted, even if it contains line breaks.
+	// If developers want multi-line output, they should use a small, fixed
+	// message and put the multi-line output into a value.
+	b.Write(
+		strconv.AppendQuote(
+			b.AvailableBuffer(),
+			msg))
 
 	var errKV []interface{}
 	if err != nil {

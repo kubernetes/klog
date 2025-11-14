@@ -815,9 +815,10 @@ func (l *loggingT) printS(err error, s severity.Severity, depth int, msg string,
 	// The message is always quoted, even if it contains line breaks.
 	// If developers want multi-line output, they should use a small, fixed
 	// message and put the multi-line output into a value.
-	qMsg := b.AvailableBuffer()
-	qMsg = strconv.AppendQuote(qMsg, msg)
-	b.Write(qMsg)
+	b.Write(
+		strconv.AppendQuote(
+			b.AvailableBuffer(),
+			msg))
 
 	var errKV []interface{}
 	if err != nil {

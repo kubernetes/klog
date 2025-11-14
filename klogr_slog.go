@@ -64,10 +64,10 @@ func slogOutput(file string, line int, now time.Time, err error, s severity.Seve
 
 	// See printS.
 	b := buffer.GetBuffer()
-	qMsg := b.AvailableBuffer()
-	qMsg = strconv.AppendQuote(qMsg, msg)
-
-	b.Write(qMsg)
+	b.Write(
+		strconv.AppendQuote(
+			b.AvailableBuffer(),
+			msg))
 
 	var errKV []interface{}
 	if err != nil {
