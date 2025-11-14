@@ -132,7 +132,10 @@ func generateJSON(b *bytes.Buffer, v interface{}) {
 				if i > 0 {
 					b.WriteByte(',')
 				}
-				b.WriteString(strconv.Quote(attr.Key))
+				b.Write(
+					strconv.AppendQuote(
+						b.AvailableBuffer(),
+						attr.Key))
 				b.WriteByte(':')
 				generateJSON(b, attr.Value)
 			}
@@ -144,15 +147,24 @@ func generateJSON(b *bytes.Buffer, v interface{}) {
 			generateJSON(b, v.Any())
 		}
 	case fmt.Stringer:
-		b.WriteString(strconv.Quote(StringerToString(v)))
+		b.Write(
+			strconv.AppendQuote(
+				b.AvailableBuffer(),
+				StringerToString(v)))
 	case logr.Marshaler:
 		generateJSON(b, MarshalerToValue(v))
 	case slog.LogValuer:
 		generateJSON(b, slog.AnyValue(v).Resolve().Any())
 	case string:
-		b.WriteString(strconv.Quote(v))
+		b.Write(
+			strconv.AppendQuote(
+				b.AvailableBuffer(),
+				v))
 	case error:
-		b.WriteString(strconv.Quote(v.Error()))
+		b.Write(
+			strconv.AppendQuote(
+				b.AvailableBuffer(),
+				v.Error()))
 	default:
 		formatAsJSON(b, v)
 	}

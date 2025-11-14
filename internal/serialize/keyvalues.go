@@ -262,7 +262,7 @@ func writeStringValue(b *bytes.Buffer, v string) {
 	if index == -1 {
 		b.WriteByte('=')
 		// Simple string, quote quotation marks and non-printable characters.
-		b.WriteString(strconv.Quote(v))
+		b.Write(strconv.AppendQuote(b.AvailableBuffer(), v))
 		return
 	}
 

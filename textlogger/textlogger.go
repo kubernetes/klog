@@ -114,15 +114,16 @@ func runtimeBacktrace(skip int) (string, int) {
 }
 
 func (l *tlogger) printWithInfos(file string, line int, now time.Time, err error, s severity.Severity, msg string, kvList []interface{}) {
-	// The message is always quoted, even if it contains line breaks.
-	// If developers want multi-line output, they should use a small, fixed
-	// message and put the multi-line output into a value.
-	qMsg := make([]byte, 0, 1024)
-	qMsg = strconv.AppendQuote(qMsg, msg)
 
 	// Only create a new buffer if we don't have one cached.
 	b := buffer.GetBuffer()
 	defer buffer.PutBuffer(b)
+
+	// The message is always quoted, even if it contains line breaks.
+	// If developers want multi-line output, they should use a small, fixed
+	// message and put the multi-line output into a value.
+	qMsg := b.AvailableBuffer()
+	qMsg = strconv.AppendQuote(qMsg, msg)
 
 	// Format header.
 	if l.config.co.fixedTime != nil {
