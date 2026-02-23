@@ -307,7 +307,7 @@ func (l tlogger) Info(level int, msg string, kvList ...interface{}) {
 }
 
 func (l tlogger) Enabled(level int) bool {
-	return l.shared.config.vstate.Enabled(verbosity.Level(level), 1)
+	return l.shared.config.vstate.Enabled(verbosity.Level(level), l.shared.callDepth+1)
 }
 
 func (l tlogger) Error(err error, msg string, kvList ...interface{}) {

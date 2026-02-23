@@ -137,8 +137,25 @@ func TestInfo(t *testing.T) {
 }
 
 func TestCallDepth(t *testing.T) {
-	logger := ktesting.NewLogger(t, ktesting.NewConfig())
-	logger.Info("hello world")
+	module := "testinglogger_test"
+	level := 10
+	config := ktesting.NewConfig()
+	if err := config.VModule().Set(fmt.Sprintf("%s=%d", module, level)); err != nil {
+		t.Fatalf("error setting vmodule: %v", err)
+	}
+
+	var buffer logToBuf
+	logger := ktesting.NewLogger(&buffer, config)
+
+	logger.V(level).Info("hello world")
+	expectedOutput := `Ixxx hello world
+`
+
+	actual := buffer.String()
+	actual = headerRe.ReplaceAllString(actual, `${1}xxx `)
+	if actual != expectedOutput {
+		t.Errorf("Expected:\n%sActual:\n%s\n", expectedOutput, actual)
+	}
 }
 
 type logToBuf struct {
