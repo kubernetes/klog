@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 )
@@ -188,11 +189,21 @@ func findObsoleteEntry(entries []obsoleteKV, key string) int {
 // formatAny is the fallback formatter for a value. It supports a hook (for
 // example, for YAML encoding) and itself uses JSON encoding.
 func (f Formatter) formatAny(b *bytes.Buffer, v interface{}) {
-	b.WriteRune('=')
 	if f.AnyToStringHook != nil {
-		b.WriteString(f.AnyToStringHook(v))
+		str := f.AnyToStringHook(v)
+		if strings.Contains(str, "\n") {
+			// If it's multi-line, then pass it through writeStringValue to get start/end delimiters,
+			// which separates it better from any following key/value pair.
+			writeStringValue(b, str)
+			return
+		}
+		// Otherwise put it directly after the separator, on the same lime,
+		// The assumption is that the hook returns something where start/end are obvious.
+		b.WriteRune('=')
+		b.WriteString(str)
 		return
 	}
+	b.WriteRune('=')
 	formatAsJSON(b, v)
 }
 
