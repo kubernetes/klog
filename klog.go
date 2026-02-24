@@ -62,7 +62,10 @@
 //	             (legacy behavior). To filter logs by severity when
 //	             -logtostderr=true, set -legacy_stderr_threshold_behavior=false
 //	             and use -stderrthreshold.
-//	             When -logtostderr=true, the following flags have no effect:
+//              With -legacy_stderr_threshold_behavior=true,
+//              -stderrthreshold has no effect.
+//
+//	             The following flags always have no effect:
 //	             -alsologtostderr, -alsologtostderrthreshold, and -log_dir.
 //	             Output redirection at runtime with SetOutput is also ignored.
 //		-alsologtostderr=false
