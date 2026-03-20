@@ -18,19 +18,27 @@ package klog
 
 import (
 	"github.com/go-logr/logr"
+	"github.com/go-logr/logr/funcr"
 )
 
 // The reason for providing these aliases is to allow code to work with logr
 // without directly importing it.
 
-// Logger in this package is exactly the same as logr.Logger.
+// Logger in this package is exactly the same as [logr.Logger].
 type Logger = logr.Logger
 
-// LogSink in this package is exactly the same as logr.LogSink.
+// LogSink in this package is exactly the same as [logr.LogSink].
 type LogSink = logr.LogSink
 
-// Runtimeinfo in this package is exactly the same as logr.RuntimeInfo.
+// Runtimeinfo in this package is exactly the same as [logr.RuntimeInfo].
 type RuntimeInfo = logr.RuntimeInfo
+
+// Marshaler in this package is exactly the same as [logr.Marshaler].
+type Marshaler = logr.Marshaler
+
+// PseudoStruct in this package is exactly the same as [funcr.PseudoStruct].
+// Use it as a value to render some key/value pairs like a struct.
+type PseudoStruct = funcr.PseudoStruct
 
 var (
 	// New is an alias for logr.New.

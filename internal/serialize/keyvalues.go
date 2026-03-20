@@ -257,6 +257,18 @@ func ErrorToString(err error) (ret string) {
 	return
 }
 
+// ErrorDetailerToDetails gets the error details,
+// handing panics if they occur.
+func ErrorDetailerToDetails(details func() any) (ret any) {
+	defer func() {
+		if err := recover(); err != nil {
+			ret = fmt.Sprintf("<panic: %s>", err)
+		}
+	}()
+	ret = details()
+	return
+}
+
 func writeTextWriterValue(b *bytes.Buffer, v textWriter) {
 	b.WriteByte('=')
 	defer func() {
@@ -309,4 +321,18 @@ func writeStringValue(b *bytes.Buffer, v string) {
 		b.Write(data)
 		b.WriteString("\n >")
 	}
+}
+
+func (f Formatter) writePseudoStruct(b *bytes.Buffer, keysAndValues []interface{}) {
+	b.WriteString("={")
+	for i := 0; i < len(keysAndValues); i += 2 {
+		var value interface{}
+		if i+1 < len(keysAndValues) {
+			value = keysAndValues[i+1]
+		} else {
+			value = missingValue
+		}
+		f.FormatKVs(b, []any{keysAndValues[i], value})
+	}
+	b.WriteString(" }")
 }
