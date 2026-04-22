@@ -62,8 +62,11 @@
 //		(legacy behavior). To filter logs by severity when
 //		-logtostderr=true, set -legacy_stderr_threshold_behavior=false
 //		and use -stderrthreshold.
-//		With -legacy_stderr_threshold_behavior=true,
-//		-stderrthreshold has no effect.
+//		With -legacy_stderr_threshold_behavior=true (the current default),
+//		-stderrthreshold has no effect. A deprecation warning is printed
+//		if -stderrthreshold is set while legacy mode is active.
+//		The default for -legacy_stderr_threshold_behavior will change
+//		to false in a future release.
 //
 //		The following flags always have no effect:
 //		-alsologtostderr, -alsologtostderrthreshold, and -log_dir.
@@ -77,8 +80,11 @@
 //	-stderrthreshold=ERROR
 //		Log events at or above this severity are logged to standard
 //		error as well as to files. When -logtostderr=true, this flag
-//		has no effect unless -legacy_stderr_threshold_behavior=false.
+//		is currently ignored unless -legacy_stderr_threshold_behavior=false.
+//		A deprecation warning is printed when this flag is set while
+//		legacy mode is active. The default will change in a future release.
 //	-legacy_stderr_threshold_behavior=true
+//		Deprecated: the default will change to false in a future release.
 //		If true, -stderrthreshold is ignored when -logtostderr=true
 //		(legacy behavior). If false, -stderrthreshold is honored even
 //		when -logtostderr=true, allowing severity-based filtering.
@@ -172,6 +178,23 @@ func (s *severityValue) Set(value string) error {
 		threshold = severity.Severity(v)
 	}
 	s.set(threshold)
+	return nil
+}
+
+// stderrThresholdValue wraps severityValue and records whether the flag
+// was explicitly set by the user.
+type stderrThresholdValue struct {
+	severityValue
+	explicitlySet *bool
+}
+
+func (s *stderrThresholdValue) Set(value string) error {
+	if err := s.severityValue.Set(value); err != nil {
+		return err
+	}
+	if s.explicitlySet != nil {
+		*s.explicitlySet = true
+	}
 	return nil
 }
 
@@ -425,8 +448,11 @@ var commandLine flag.FlagSet
 // init sets up the defaults and creates command line flags.
 func init() {
 	// Initialize severity thresholds
-	logging.stderrThreshold = severityValue{
-		Severity: severity.ErrorLog, // Default stderrThreshold is ERROR.
+	logging.stderrThreshold = stderrThresholdValue{
+		severityValue: severityValue{
+			Severity: severity.ErrorLog, // Default stderrThreshold is ERROR.
+		},
+		explicitlySet: &logging.stderrThresholdExplicitlySet,
 	}
 	logging.alsologtostderrthreshold = severityValue{
 		Severity: severity.InfoLog, // Default alsologtostderrthreshold is INFO (to maintain backward compatibility).
@@ -440,13 +466,13 @@ func init() {
 			"If the value is 0, the maximum file size is unlimited.")
 	commandLine.BoolVar(&logging.toStderr, "logtostderr", true, "log to standard error instead of files")
 	commandLine.BoolVar(&logging.alsoToStderr, "alsologtostderr", false, "log to standard error as well as files (no effect when -logtostderr=true)")
-	commandLine.BoolVar(&logging.legacyStderrThresholdBehavior, "legacy_stderr_threshold_behavior", true, "If true, stderrthreshold is ignored when logtostderr=true (legacy behavior). If false, stderrthreshold is honored even when logtostderr=true")
+	commandLine.BoolVar(&logging.legacyStderrThresholdBehavior, "legacy_stderr_threshold_behavior", true, "If true, stderrthreshold is ignored when logtostderr=true (legacy behavior, deprecated — will default to false in a future release). If false, stderrthreshold is honored even when logtostderr=true")
 	commandLine.Var(&logging.verbosity, "v", "number for the log level verbosity")
 	commandLine.BoolVar(&logging.addDirHeader, "add_dir_header", false, "If true, adds the file directory to the header of the log messages")
 	commandLine.BoolVar(&logging.skipHeaders, "skip_headers", false, "If true, avoid header prefixes in the log messages")
 	commandLine.BoolVar(&logging.oneOutput, "one_output", false, "If true, only write logs to their native severity level (vs also writing to each lower severity level; no effect when -logtostderr=true)")
 	commandLine.BoolVar(&logging.skipLogHeaders, "skip_log_headers", false, "If true, avoid headers when opening log files (no effect when -logtostderr=true)")
-	commandLine.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr when writing to files and stderr (no effect when -logtostderr=true or -alsologtostderr=true unless -legacy_stderr_threshold_behavior=false)")
+	commandLine.Var(&logging.stderrThreshold, "stderrthreshold", "logs at or above this threshold go to stderr when writing to files and stderr (currently ignored when -logtostderr=true unless -legacy_stderr_threshold_behavior=false; the default will change in a future release)")
 	commandLine.Var(&logging.alsologtostderrthreshold, "alsologtostderrthreshold", "logs at or above this threshold go to stderr when -alsologtostderr=true (no effect when -logtostderr=true)")
 	commandLine.Var(&logging.vmodule, "vmodule", "comma-separated list of pattern=N settings for file-filtered logging")
 	commandLine.Var(&logging.traceLocation, "log_backtrace_at", "when logging hits line file:N, emit a stack trace")
@@ -497,7 +523,7 @@ type settings struct {
 	legacyStderrThresholdBehavior bool // The -legacy_stderr_threshold_behavior flag.
 
 	// Level flag. Handled atomically.
-	stderrThreshold          severityValue // The -stderrthreshold flag.
+	stderrThreshold          stderrThresholdValue // The -stderrthreshold flag.
 	alsologtostderrthreshold severityValue // The -alsologtostderrthreshold flag.
 
 	// Access to all of the following fields must be protected via a mutex.
@@ -574,6 +600,12 @@ type loggingT struct {
 	// mu protects the remaining elements of this structure and the fields
 	// in settingsT which need a mutex lock.
 	mu sync.Mutex
+
+	// stderrThresholdExplicitlySet tracks whether -stderrthreshold was
+	// passed on the command line or set programmatically.
+	stderrThresholdExplicitlySet bool
+	// legacyDeprecationWarned guards the one-time deprecation warning.
+	legacyDeprecationWarned sync.Once
 
 	// pcs is used in V to avoid an allocation when computing the caller's PC.
 	pcs [1]uintptr
@@ -917,7 +949,15 @@ func (l *loggingT) output(s severity.Severity, logger *logWriter, buf *buffer.Bu
 		// When logging to stderr only, check if we should filter by severity.
 		// This is controlled by the legacy_stderr_threshold_behavior flag.
 		if l.legacyStderrThresholdBehavior {
-			// Legacy behavior: always write to stderr, ignore stderrthreshold
+			if logging.stderrThresholdExplicitlySet {
+				logging.legacyDeprecationWarned.Do(func() {
+					fmt.Fprintf(os.Stderr, "WARNING: -stderrthreshold is set but ignored because "+
+						"-legacy_stderr_threshold_behavior=true (the current default). "+
+						"Set -legacy_stderr_threshold_behavior=false to honor -stderrthreshold "+
+						"when -logtostderr=true. The default for -legacy_stderr_threshold_behavior "+
+						"will change to false in a future klog release.\n")
+				})
+			}
 			os.Stderr.Write(data)
 		} else {
 			// New behavior: honor stderrthreshold even when logtostderr=true

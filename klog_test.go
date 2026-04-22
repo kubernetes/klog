@@ -811,8 +811,8 @@ func BenchmarkLogs(b *testing.B) {
 	require.NoError(b, logging.verbosity.Set("0"))
 	logging.toStderr = false
 	logging.alsoToStderr = false
-	logging.stderrThreshold = severityValue{
-		Severity: severity.FatalLog,
+	logging.stderrThreshold = stderrThresholdValue{
+		severityValue: severityValue{Severity: severity.FatalLog},
 	}
 	logging.logFile = testFile.Name()
 	logging.swap([severity.NumSeverity]io.Writer{nil, nil, nil, nil})
@@ -847,8 +847,8 @@ func BenchmarkFlush(b *testing.B) {
 	require.NoError(b, logging.verbosity.Set("0"))
 	logging.toStderr = false
 	logging.alsoToStderr = false
-	logging.stderrThreshold = severityValue{
-		Severity: severity.FatalLog,
+	logging.stderrThreshold = stderrThresholdValue{
+		severityValue: severityValue{Severity: severity.FatalLog},
 	}
 	logging.logFile = testFile.Name()
 	logging.swap([severity.NumSeverity]io.Writer{nil, nil, nil, nil})
@@ -947,7 +947,7 @@ func TestCommandLine(t *testing.T) {
   -alsologtostderrthreshold value
     	logs at or above this threshold go to stderr when -alsologtostderr=true (no effect when -logtostderr=true)
   -legacy_stderr_threshold_behavior
-    	If true, stderrthreshold is ignored when logtostderr=true (legacy behavior). If false, stderrthreshold is honored even when logtostderr=true (default true)
+    	If true, stderrthreshold is ignored when logtostderr=true (legacy behavior, deprecated — will default to false in a future release). If false, stderrthreshold is honored even when logtostderr=true (default true)
   -log_backtrace_at value
     	when logging hits line file:N, emit a stack trace
   -log_dir string
@@ -965,7 +965,7 @@ func TestCommandLine(t *testing.T) {
   -skip_log_headers
     	If true, avoid headers when opening log files (no effect when -logtostderr=true)
   -stderrthreshold value
-    	logs at or above this threshold go to stderr when writing to files and stderr (no effect when -logtostderr=true or -alsologtostderr=true unless -legacy_stderr_threshold_behavior=false) (default 2)
+    	logs at or above this threshold go to stderr when writing to files and stderr (currently ignored when -logtostderr=true unless -legacy_stderr_threshold_behavior=false; the default will change in a future release) (default 2)
   -v value
     	number for the log level verbosity
   -vmodule value
@@ -1298,8 +1298,8 @@ func createTestValueOfLoggingT() *loggingT {
 	l := new(loggingT)
 	l.toStderr = true
 	l.alsoToStderr = false
-	l.stderrThreshold = severityValue{
-		Severity: severity.ErrorLog,
+	l.stderrThreshold = stderrThresholdValue{
+		severityValue: severityValue{Severity: severity.ErrorLog},
 	}
 	l.verbosity = Level(0)
 	l.skipHeaders = false

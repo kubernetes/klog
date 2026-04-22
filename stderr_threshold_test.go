@@ -23,6 +23,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"k8s.io/klog/v2/internal/buffer"
@@ -345,6 +346,74 @@ func TestNewFlagParsing(t *testing.T) {
 			}
 			if !tt.expectError && err != nil {
 				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestLegacyBehaviorDeprecationWarning(t *testing.T) {
+	defer CaptureState().Restore()
+
+	tests := []struct {
+		name          string
+		legacy        bool
+		setThreshold  bool
+		expectWarning bool
+	}{
+		{
+			name:          "warning when legacy=true and stderrthreshold explicitly set",
+			legacy:        true,
+			setThreshold:  true,
+			expectWarning: true,
+		},
+		{
+			name:          "no warning when legacy=true but stderrthreshold not set",
+			legacy:        true,
+			setThreshold:  false,
+			expectWarning: false,
+		},
+		{
+			name:          "no warning when legacy=false",
+			legacy:        false,
+			setThreshold:  true,
+			expectWarning: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			state := CaptureState()
+			defer state.Restore()
+
+			oldStderr := os.Stderr
+			r, w, _ := os.Pipe()
+			os.Stderr = w
+
+			logging.mu.Lock()
+			logging.toStderr = true
+			logging.legacyStderrThresholdBehavior = tt.legacy
+			logging.legacyDeprecationWarned = sync.Once{}
+			logging.stderrThreshold.severityValue.Set("ERROR")
+			logging.stderrThresholdExplicitlySet = tt.setThreshold
+			logging.mu.Unlock()
+
+			buf := buffer.GetBuffer()
+			buf.WriteString("deprecation test message\n")
+			logging.output(severity.InfoLog, nil, buf, 0, "test.go", 1, false)
+
+			w.Close()
+			var stderrBuf bytes.Buffer
+			io.Copy(&stderrBuf, r)
+			os.Stderr = oldStderr
+
+			stderrContent := stderrBuf.String()
+			hasWarning := strings.Contains(stderrContent, "WARNING: -stderrthreshold is set but ignored")
+
+			if tt.expectWarning && !hasWarning {
+				t.Errorf("expected deprecation warning but not found.\nStderr: %q", stderrContent)
+			}
+			if !tt.expectWarning && hasWarning {
+				t.Errorf("did not expect deprecation warning but found it.\nStderr: %q", stderrContent)
 			}
 		})
 	}
