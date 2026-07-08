@@ -9,11 +9,11 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
     - name: Test klog
       run: |
         go get -t -v ./...
@@ -25,7 +25,7 @@ jobs:
     if: github.base_ref
     steps:
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version: 1.23
       - name: Add GOBIN to PATH
@@ -33,12 +33,12 @@ jobs:
       - name: Install dependencies
         run: go install golang.org/x/exp/cmd/apidiff@latest
       - name: Checkout old code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ github.base_ref }}
           path: "old"
       - name: Checkout new code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           path: "new"
       - name: APIDiff
