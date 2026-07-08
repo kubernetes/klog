@@ -304,6 +304,16 @@ I output.go:<LINE>] "test" firstKey=1 secondKey=3
 		expectedOutput: `I output.go:<LINE>] "test" pods=["kube-system/pod-1",null]
 `,
 	},
+	"KObjSlice typed nil entry": {
+		text: "test",
+		values: []interface{}{"pods",
+			klog.KObjSlice([]*kmeta{
+				{Name: "pod-1", Namespace: "kube-system"},
+				nil,
+			})},
+		expectedOutput: `I output.go:<LINE>] "test" pods=["kube-system/pod-1",null]
+`,
+	},
 	"KObjSlice ints": {
 		text: "test",
 		values: []interface{}{"ints",

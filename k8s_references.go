@@ -89,6 +89,17 @@ func KObj(obj KMetadata) ObjectRef {
 	}
 }
 
+// isNilPointer reports whether obj is a non-nil KMetadata interface that wraps
+// a nil pointer. KObj turns such a value into an empty ObjectRef, which is
+// indistinguishable from an object with an empty name, so KObjSlice detects it
+// in order to log the entry as null instead. When the value is not nil,
+// KObjSlice builds the ObjectRef directly rather than calling KObj, which would
+// reflect on the value a second time.
+func isNilPointer(obj KMetadata) bool {
+	val := reflect.ValueOf(obj)
+	return val.Kind() == reflect.Ptr && val.IsNil()
+}
+
 // KRef returns ObjectRef from name and namespace
 func KRef(namespace, name string) ObjectRef {
 	return ObjectRef{
@@ -170,7 +181,11 @@ func (ks kobjSlice) process() (objs []interface{}, err string) {
 		if item == nil {
 			objectRefs = append(objectRefs, nil)
 		} else if v, ok := item.(KMetadata); ok {
-			objectRefs = append(objectRefs, KObj(v))
+			if isNilPointer(v) {
+				objectRefs = append(objectRefs, nil)
+			} else {
+				objectRefs = append(objectRefs, ObjectRef{Name: v.GetName(), Namespace: v.GetNamespace()})
+			}
 		} else {
 			return nil, fmt.Sprintf("<KObjSlice needs a slice of values implementing KMetadata, got type %T>", item)
 		}
@@ -203,7 +218,12 @@ func (ks kobjSlice) WriteText(out *bytes.Buffer) {
 		if item == nil {
 			out.Write(nilToken)
 		} else if v, ok := item.(KMetadata); ok {
-			KObj(v).WriteText(out)
+			if isNilPointer(v) {
+				out.Write(nilToken)
+			} else {
+				ref := ObjectRef{Name: v.GetName(), Namespace: v.GetNamespace()}
+				ref.WriteText(out)
+			}
 		} else {
 			fmt.Fprintf(out, `"<KObjSlice needs a slice of values implementing KMetadata, got type %T>"`, item)
 			return
