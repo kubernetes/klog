@@ -224,7 +224,7 @@ func TestHeaderWithDir(t *testing.T) {
 	timeNow = func() time.Time {
 		return time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.Local)
 	}
-	pid = 1234
+	buffer.Pid = 1234
 	Info("test")
 	re := regexp.MustCompile(`I0102 15:04:05.067890    1234 (klog|v2)/klog_test.go:(\d+)] test\n`)
 	if !re.MatchString(contents(severity.InfoLog)) {
@@ -1119,7 +1119,7 @@ func TestInfoS(t *testing.T) {
 	timeNow = func() time.Time {
 		return time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.Local)
 	}
-	pid = 1234
+	buffer.Pid = 1234
 	var testDataInfo = []struct {
 		msg        string
 		format     string
@@ -1176,7 +1176,7 @@ func TestVInfoS(t *testing.T) {
 	timeNow = func() time.Time {
 		return time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.Local)
 	}
-	pid = 1234
+	buffer.Pid = 1234
 	myData := struct {
 		Data string
 	}{
@@ -1258,7 +1258,7 @@ func TestErrorS(t *testing.T) {
 		return time.Date(2006, 1, 2, 15, 4, 5, .067890e9, time.Local)
 	}
 	logging.logFile = ""
-	pid = 1234
+	buffer.Pid = 1234
 
 	functions := []func(err error, msg string, keyAndValues ...interface{}){
 		ErrorS,
