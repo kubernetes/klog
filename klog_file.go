@@ -26,6 +26,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"k8s.io/klog/v2/internal/buffer"
 )
 
 // MaxSize is the maximum size of a log file in bytes.
@@ -42,7 +44,6 @@ func createLogDirs() {
 }
 
 var (
-	pid          = os.Getpid()
 	program      = filepath.Base(os.Args[0])
 	host         = "unknownhost"
 	userName     = "unknownuser"
@@ -78,7 +79,7 @@ func logName(tag string, t time.Time) (name, link string) {
 		t.Hour(),
 		t.Minute(),
 		t.Second(),
-		pid)
+		buffer.Pid)
 	return name, program + "." + tag
 }
 
